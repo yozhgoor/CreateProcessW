@@ -17,7 +17,7 @@ impl ChildProcess {
     pub fn new(command: &str) -> Result<Self, ChildProcessError> {
         match create_process(command) {
             Ok(process_information) => Ok(Self { process_information }),
-            Err(err) => Err(format!("{}", err)),
+            Err(err) => Err(format!("an error occurred when creating process : {}", err)),
         }
     }
 
@@ -35,7 +35,7 @@ impl ChildProcess {
 
                 Ok(())
             } else {
-                Err(String::from("An error occurred when killing the process"))
+                Err(String::from("an error occurred when killing the process"))
             }
         }
     }
