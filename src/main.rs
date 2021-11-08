@@ -1,15 +1,18 @@
-use windows::Win32::Security::SECURITY_ATTRIBUTES;
-use windows::Win32::System::Threading::{PROCESS_CREATION_FLAGS, PROCESS_INFORMATION, STARTUPINFOW, TerminateProcess, WaitForSingleObject};
-use windows::Win32::Foundation::{PWSTR, CloseHandle, GetLastError};
-use windows::Win32::System::WindowsProgramming::INFINITE;
 use std::os::raw::c_void;
+use windows::Win32::Foundation::{CloseHandle, GetLastError, PWSTR};
+use windows::Win32::Security::SECURITY_ATTRIBUTES;
+use windows::Win32::System::Threading::{
+    TerminateProcess, WaitForSingleObject, PROCESS_CREATION_FLAGS, PROCESS_INFORMATION,
+    STARTUPINFOW,
+};
+use windows::Win32::System::WindowsProgramming::INFINITE;
 
 fn main() {
     let si = STARTUPINFOW::default();
     let mut pi = PROCESS_INFORMATION::default();
 
     let kill = false;
-    
+
     unsafe {
         if windows::Win32::System::Threading::CreateProcessW(
             PWSTR::default(),
@@ -19,20 +22,22 @@ fn main() {
             false,
             PROCESS_CREATION_FLAGS(0),
             std::ptr::null() as *const c_void,
-            PWSTR::default(), 
+            PWSTR::default(),
             &si,
             &mut pi as *mut PROCESS_INFORMATION,
-        ).as_bool() {   
+        )
+        .as_bool()
+        {
             if kill {
                 std::thread::sleep(std::time::Duration::from_secs(2));
 
-                TerminateProcess( pi.hProcess, 0 );
+                TerminateProcess(pi.hProcess, 0);
             } else {
-                WaitForSingleObject( pi.hProcess, INFINITE );
+                WaitForSingleObject(pi.hProcess, INFINITE);
             }
 
-            CloseHandle (pi.hProcess);
-            CloseHandle (pi.hThread);
+            CloseHandle(pi.hProcess);
+            CloseHandle(pi.hThread);
 
             std::thread::sleep(std::time::Duration::from_secs(2));
 
@@ -42,6 +47,3 @@ fn main() {
         }
     }
 }
-
-
-// fn create_process(command: String, foreground: bool, keep_on_exit: bool, working_dir: Option<PathBuf>, stdout: bool, stderr: bool)
