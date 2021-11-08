@@ -15,15 +15,9 @@ pub type ChildProcessError = String;
 
 impl ChildProcess {
     pub fn new(command: &str) -> Result<Self, ChildProcessError> {
-        let startup_info = STARTUPINFOW::default();
-        let process_information = PROCESS_INFORMATION::default();
-
-        if create_process(startup_info, process_information, command) {
-            Ok(Self {
-                process_information,
-            })
-        } else {
-            Err(format!("{:?}", unsafe { GetLastError() }))
+        match create_process(command) {
+            Ok(process_information) => Ok(Self { process_information }),
+            Err(err) => Err(format!("{}", err)),
         }
     }
 
@@ -47,9 +41,12 @@ impl ChildProcess {
     }
 }
 
-fn create_process(si: STARTUPINFOW, mut pi: PROCESS_INFORMATION, command: &str) -> bool {
+fn create_process(command: &str) -> Result<PROCESS_INFORMATION, ChildProcessError> {
     unsafe {
-        windows::Win32::System::Threading::CreateProcessW(
+        let si = STARTUPINFOW::default();
+        let mut pi = PROCESS_INFORMATION::default();
+
+        if windows::Win32::System::Threading::CreateProcessW(
             PWSTR::default(),
             command,
             std::ptr::null() as *const SECURITY_ATTRIBUTES,
@@ -60,8 +57,11 @@ fn create_process(si: STARTUPINFOW, mut pi: PROCESS_INFORMATION, command: &str) 
             PWSTR::default(),
             &si,
             &mut pi as *mut PROCESS_INFORMATION,
-        )
-        .as_bool()
+        ).as_bool() {
+            Ok(pi)
+        } else {
+            Err(format!("{:?}", GetLastError()))
+        }
     }
 }
 
