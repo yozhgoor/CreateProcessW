@@ -16,7 +16,9 @@ pub type ChildProcessError = String;
 impl ChildProcess {
     pub fn new(command: &str) -> Result<Self, ChildProcessError> {
         match create_process(command) {
-            Ok(process_information) => Ok(Self { process_information }),
+            Ok(process_information) => Ok(Self {
+                process_information,
+            }),
             Err(err) => Err(format!("an error occurred when creating process : {}", err)),
         }
     }
@@ -57,7 +59,9 @@ fn create_process(command: &str) -> Result<PROCESS_INFORMATION, ChildProcessErro
             PWSTR::default(),
             &si,
             &mut pi as *mut PROCESS_INFORMATION,
-        ).as_bool() {
+        )
+        .as_bool()
+        {
             Ok(pi)
         } else {
             Err(format!("{:?}", GetLastError()))
