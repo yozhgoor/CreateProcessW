@@ -1,5 +1,6 @@
 [package]
 name = "CreateProcessW"
+alias = "create_process_w"
 version = "0.1.0"
 edition = "2021"
 
