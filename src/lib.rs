@@ -42,7 +42,6 @@ impl ChildProcess {
                     &si,
                     &mut pi as *mut PROCESS_INFORMATION,
                 )
-                .as_bool()
             } else {
                 windows::Win32::System::Threading::CreateProcessW(
                     PWSTR::default(),
@@ -56,8 +55,8 @@ impl ChildProcess {
                     &si,
                     &mut pi as *mut PROCESS_INFORMATION,
                 )
-                .as_bool()
-            };
+            }
+            .as_bool();
 
             if process {
                 Ok(Self {
