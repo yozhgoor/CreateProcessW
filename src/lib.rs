@@ -92,7 +92,8 @@ impl ChildProcess {
     pub fn wait(&self) -> ExitCode {
         unsafe {
             let exit_code = WaitForSingleObject(self.process_information.hProcess, INFINITE);
-            close_handle(self.process_information);
+            CloseHandle(self.process_information.hProcess);
+            CloseHandle(self.process_information.hThread);
 
             ExitCode(exit_code)
         }
@@ -100,10 +101,7 @@ impl ChildProcess {
 
     pub fn kill(&self) -> Result<(), ChildProcessError> {
         unsafe {
-            let res = TerminateProcess(self.process_information.hProcess, 0);
-            close_handle(self.process_information);
-
-            if res.as_bool() {
+            if TerminateProcess(self.process_information.hProcess, 0).as_bool() {
                 Ok(())
             } else {
                 Err(ChildProcessError::KillFailed(format!(
@@ -122,12 +120,5 @@ impl ExitCode {
 
     pub fn display(&self) -> u32 {
         self.0
-    }
-}
-
-fn close_handle(process_information: PROCESS_INFORMATION) {
-    unsafe {
-        CloseHandle(process_information.hProcess);
-        CloseHandle(process_information.hThread);
     }
 }
