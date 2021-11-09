@@ -17,6 +17,8 @@ pub struct ChildProcess {
 
 pub type ChildProcessError = String;
 
+pub struct ExitCode(u32);
+
 impl ChildProcess {
     pub fn new(
         command: &str,
@@ -72,12 +74,12 @@ impl ChildProcess {
         self.command.clone()
     }
 
-    pub fn wait(&self) -> u32 {
+    pub fn wait(&self) -> ExitCode {
         unsafe {
             let exit_code = WaitForSingleObject(self.process_information.hProcess, INFINITE);
             close_handle(self.process_information);
 
-            exit_code
+            ExitCode(exit_code)
         }
     }
 
@@ -92,6 +94,16 @@ impl ChildProcess {
                 Err(format!("cannot kill process: {:?}", GetLastError()))
             }
         }
+    }
+}
+
+impl ExitCode {
+    pub fn success(&self) -> bool {
+        self.0 == 0
+    }
+
+    pub fn display(&self) -> u32 {
+        self.0
     }
 }
 
