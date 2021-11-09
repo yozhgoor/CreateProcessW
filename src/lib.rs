@@ -2,6 +2,7 @@
 
 use std::ffi::c_void;
 use std::mem::size_of;
+use thiserror::Error;
 use windows::Win32::Foundation::{CloseHandle, GetLastError, PWSTR};
 use windows::Win32::Security::SECURITY_ATTRIBUTES;
 use windows::Win32::System::Threading::{
@@ -16,7 +17,13 @@ pub struct ChildProcess {
     process_information: PROCESS_INFORMATION,
 }
 
-pub type ChildProcessError = String;
+#[derive(Error, Debug)]
+pub enum ChildProcessError {
+    #[error("cannot create childprocess: {0}")]
+    CreationFailed(String),
+    #[error("cannot kill process: {0}")]
+    KillFailed(String),
+}
 
 pub struct ExitCode(u32);
 
@@ -68,7 +75,10 @@ impl ChildProcess {
                     process_information: pi,
                 })
             } else {
-                Err(format!("cannot create process: {:?}", GetLastError()))
+                Err(ChildProcessError::CreationFailed(format!(
+                    "{:?}",
+                    GetLastError()
+                )))
             }
         }
     }
@@ -94,7 +104,10 @@ impl ChildProcess {
             if res.as_bool() {
                 Ok(())
             } else {
-                Err(format!("cannot kill process: {:?}", GetLastError()))
+                Err(ChildProcessError::KillFailed(format!(
+                    "{:?}",
+                    GetLastError()
+                )))
             }
         }
     }
