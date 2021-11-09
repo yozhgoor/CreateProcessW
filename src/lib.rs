@@ -2,6 +2,7 @@
 
 use std::ffi::c_void;
 use std::mem::size_of;
+use std::path::Path;
 use thiserror::Error;
 use windows::Win32::Foundation::{CloseHandle, GetLastError, PWSTR};
 use windows::Win32::Security::SECURITY_ATTRIBUTES;
@@ -31,7 +32,7 @@ impl ChildProcess {
     pub fn new(
         command: &str,
         inherit_handles: bool,
-        current_directory: Option<&str>,
+        current_directory: Option<impl AsRef<Path>>,
     ) -> Result<Self, ChildProcessError> {
         unsafe {
             let mut si = STARTUPINFOW::default();
@@ -42,6 +43,7 @@ impl ChildProcess {
             let process_creation_flags = PROCESS_CREATION_FLAGS(0);
 
             let res = if let Some(directory) = current_directory {
+                let directory = directory.as_ref().as_os_str();
                 windows::Win32::System::Threading::CreateProcessW(
                     PWSTR::default(),
                     command,
