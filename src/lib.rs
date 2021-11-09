@@ -1,7 +1,6 @@
 #![allow(non_snake_case)]
 
 use std::ffi::c_void;
-use windows::runtime::{IntoParam, Param};
 use windows::Win32::Foundation::{CloseHandle, GetLastError, PWSTR};
 use windows::Win32::Security::SECURITY_ATTRIBUTES;
 use windows::Win32::System::Threading::{
@@ -28,23 +27,37 @@ impl ChildProcess {
             let si = STARTUPINFOW::default();
             let mut pi = PROCESS_INFORMATION::default();
 
-            let current_directory: Param<'static, PWSTR> =
-                current_directory.unwrap_or_default().into_param();
+            let process = if let Some(directory) = current_directory {
+                windows::Win32::System::Threading::CreateProcessW(
+                    PWSTR::default(),
+                    command,
+                    std::ptr::null() as *const SECURITY_ATTRIBUTES,
+                    std::ptr::null() as *const SECURITY_ATTRIBUTES,
+                    inherit_handles,
+                    PROCESS_CREATION_FLAGS(0),
+                    std::ptr::null() as *const c_void,
+                    directory,
+                    &si,
+                    &mut pi as *mut PROCESS_INFORMATION,
+                )
+                .as_bool()
+            } else {
+                windows::Win32::System::Threading::CreateProcessW(
+                    PWSTR::default(),
+                    command,
+                    std::ptr::null() as *const SECURITY_ATTRIBUTES,
+                    std::ptr::null() as *const SECURITY_ATTRIBUTES,
+                    inherit_handles,
+                    PROCESS_CREATION_FLAGS(0),
+                    std::ptr::null() as *const c_void,
+                    PWSTR::default(),
+                    &si,
+                    &mut pi as *mut PROCESS_INFORMATION,
+                )
+                .as_bool()
+            };
 
-            if windows::Win32::System::Threading::CreateProcessW(
-                PWSTR::default(),
-                command,
-                std::ptr::null() as *const SECURITY_ATTRIBUTES,
-                std::ptr::null() as *const SECURITY_ATTRIBUTES,
-                inherit_handles,
-                PROCESS_CREATION_FLAGS(0),
-                std::ptr::null() as *const c_void,
-                current_directory,
-                &si,
-                &mut pi as *mut PROCESS_INFORMATION,
-            )
-            .as_bool()
-            {
+            if process {
                 Ok(Self {
                     command: command.to_string(),
                     process_information: pi,
