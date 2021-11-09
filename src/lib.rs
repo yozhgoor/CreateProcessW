@@ -63,7 +63,7 @@ impl ChildProcess {
                     process_information: pi,
                 })
             } else {
-                Err(format!("Cannot create process: {:?}", GetLastError()))
+                Err(format!("cannot create process: {:?}", GetLastError()))
             }
         }
     }
@@ -72,10 +72,12 @@ impl ChildProcess {
         self.command.clone()
     }
 
-    pub fn wait(&self) {
+    pub fn wait(&self) -> u32 {
         unsafe {
-            WaitForSingleObject(self.process_information.hProcess, INFINITE);
+            let exit_code = WaitForSingleObject(self.process_information.hProcess, INFINITE);
             close_handle(self.process_information);
+
+            exit_code
         }
     }
 
@@ -86,7 +88,8 @@ impl ChildProcess {
 
                 Ok(())
             } else {
-                Err(String::from("an error occurred when killing the process"))
+                close_handle(self.process_information);
+                Err(format!("cannot kill process: {:?}", GetLastError()))
             }
         }
     }
