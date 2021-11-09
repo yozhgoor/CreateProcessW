@@ -29,7 +29,7 @@ impl ChildProcess {
             let si = STARTUPINFOW::default();
             let mut pi = PROCESS_INFORMATION::default();
 
-            let process = if let Some(directory) = current_directory {
+            let started_process = if let Some(directory) = current_directory {
                 windows::Win32::System::Threading::CreateProcessW(
                     PWSTR::default(),
                     command,
@@ -58,7 +58,7 @@ impl ChildProcess {
             }
             .as_bool();
 
-            if process {
+            if started_process {
                 Ok(Self {
                     command: command.to_string(),
                     process_information: pi,
@@ -84,10 +84,10 @@ impl ChildProcess {
 
     pub fn kill(&self) -> Result<(), ChildProcessError> {
         unsafe {
-            let terminate = TerminateProcess(self.process_information.hProcess, 0).as_bool();
+            let killed_process = TerminateProcess(self.process_information.hProcess, 0).as_bool();
             close_handle(self.process_information);
 
-            if terminate {
+            if killed_process {
                 Ok(())
             } else {
                 Err(format!("cannot kill process: {:?}", GetLastError()))
