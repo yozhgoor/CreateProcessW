@@ -32,6 +32,8 @@ impl ChildProcess {
 
             si.cb = size_of::<STARTUPINFOW>() as u32;
 
+            let process_creation_flags = PROCESS_CREATION_FLAGS(0);
+
             let res = if let Some(directory) = current_directory {
                 windows::Win32::System::Threading::CreateProcessW(
                     PWSTR::default(),
@@ -39,7 +41,7 @@ impl ChildProcess {
                     std::ptr::null() as *const SECURITY_ATTRIBUTES,
                     std::ptr::null() as *const SECURITY_ATTRIBUTES,
                     inherit_handles,
-                    PROCESS_CREATION_FLAGS(0),
+                    process_creation_flags,
                     std::ptr::null() as *const c_void,
                     directory,
                     &si,
@@ -52,7 +54,7 @@ impl ChildProcess {
                     std::ptr::null() as *const SECURITY_ATTRIBUTES,
                     std::ptr::null() as *const SECURITY_ATTRIBUTES,
                     inherit_handles,
-                    PROCESS_CREATION_FLAGS(0),
+                    process_creation_flags,
                     std::ptr::null() as *const c_void,
                     PWSTR::default(),
                     &si,
