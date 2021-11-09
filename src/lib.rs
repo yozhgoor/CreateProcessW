@@ -18,16 +18,6 @@ pub struct ChildProcess {
     process_information: PROCESS_INFORMATION,
 }
 
-#[derive(Error, Debug)]
-pub enum ChildProcessError {
-    #[error("cannot create childprocess: {0}")]
-    CreationFailed(String),
-    #[error("cannot kill process: {0}")]
-    KillFailed(String),
-}
-
-pub struct ExitCode(u32);
-
 impl ChildProcess {
     pub fn new(
         command: &str,
@@ -89,13 +79,13 @@ impl ChildProcess {
         self.command.clone()
     }
 
-    pub fn wait(&self) -> ExitCode {
+    pub fn wait(&self) -> ExitStatus {
         unsafe {
             let exit_code = WaitForSingleObject(self.process_information.hProcess, INFINITE);
             CloseHandle(self.process_information.hProcess);
             CloseHandle(self.process_information.hThread);
 
-            ExitCode(exit_code)
+            ExitStatus(exit_code)
         }
     }
 
@@ -113,12 +103,22 @@ impl ChildProcess {
     }
 }
 
-impl ExitCode {
+#[derive(Error, Debug)]
+pub enum ChildProcessError {
+    #[error("cannot create childprocess: {0}")]
+    CreationFailed(String),
+    #[error("cannot kill process: {0}")]
+    KillFailed(String),
+}
+
+pub struct ExitStatus(u32);
+
+impl ExitStatus {
     pub fn success(&self) -> bool {
         self.0 == 0
     }
 
-    pub fn display(&self) -> u32 {
+    pub fn code(&self) -> u32 {
         self.0
     }
 }
