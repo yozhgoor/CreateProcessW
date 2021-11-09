@@ -1,3 +1,5 @@
+#![allow(non_snake_case)]
+
 use std::ffi::c_void;
 use windows::Win32::Foundation::{CloseHandle, GetLastError, PWSTR};
 use windows::Win32::Security::SECURITY_ATTRIBUTES;
