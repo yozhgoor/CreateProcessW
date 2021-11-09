@@ -1,6 +1,7 @@
 #![allow(non_snake_case)]
 
 use std::ffi::c_void;
+use std::mem::size_of;
 use windows::Win32::Foundation::{CloseHandle, GetLastError, PWSTR};
 use windows::Win32::Security::SECURITY_ATTRIBUTES;
 use windows::Win32::System::Threading::{
@@ -26,8 +27,10 @@ impl ChildProcess {
         current_directory: Option<&str>,
     ) -> Result<Self, ChildProcessError> {
         unsafe {
-            let si = STARTUPINFOW::default();
+            let mut si = STARTUPINFOW::default();
             let mut pi = PROCESS_INFORMATION::default();
+
+            si.cb = size_of::<STARTUPINFOW>() as u32;
 
             let started_process = if let Some(directory) = current_directory {
                 windows::Win32::System::Threading::CreateProcessW(
