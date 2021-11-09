@@ -83,12 +83,12 @@ impl ChildProcess {
 
     pub fn kill(&self) -> Result<(), ChildProcessError> {
         unsafe {
-            if TerminateProcess(self.process_information.hProcess, 0).as_bool() {
-                close_handle(self.process_information);
+            let terminate = TerminateProcess(self.process_information.hProcess, 0).as_bool();
+            close_handle(self.process_information);
 
+            if terminate {
                 Ok(())
             } else {
-                close_handle(self.process_information);
                 Err(format!("cannot kill process: {:?}", GetLastError()))
             }
         }
