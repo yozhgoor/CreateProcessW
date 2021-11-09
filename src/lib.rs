@@ -1,7 +1,8 @@
 #![allow(non_snake_case)]
 
 use std::ffi::c_void;
-use windows::Win32::Foundation::{CloseHandle, GetLastError};
+use windows::runtime::{IntoParam, Param};
+use windows::Win32::Foundation::{CloseHandle, GetLastError, PWSTR};
 use windows::Win32::Security::SECURITY_ATTRIBUTES;
 use windows::Win32::System::Threading::{
     TerminateProcess, WaitForSingleObject, PROCESS_CREATION_FLAGS, PROCESS_INFORMATION,
@@ -19,8 +20,7 @@ pub type ChildProcessError = String;
 
 impl ChildProcess {
     pub fn new(
-        application_name: Option<&str>,
-        command: Option<&str>,
+        command: &str,
         inherit_handles: bool,
         current_directory: Option<&str>,
     ) -> Result<Self, ChildProcessError> {
@@ -28,17 +28,18 @@ impl ChildProcess {
             let si = STARTUPINFOW::default();
             let mut pi = PROCESS_INFORMATION::default();
 
-            let command = command.unwrap_or_default();
+            let current_directory: Param<'static, PWSTR> =
+                current_directory.unwrap_or_default().into_param();
 
             if windows::Win32::System::Threading::CreateProcessW(
-                application_name.unwrap_or_default(),
+                PWSTR::default(),
                 command,
                 std::ptr::null() as *const SECURITY_ATTRIBUTES,
                 std::ptr::null() as *const SECURITY_ATTRIBUTES,
                 inherit_handles,
                 PROCESS_CREATION_FLAGS(0),
                 std::ptr::null() as *const c_void,
-                current_directory.unwrap_or_default(),
+                current_directory,
                 &si,
                 &mut pi as *mut PROCESS_INFORMATION,
             )
