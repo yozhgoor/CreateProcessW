@@ -58,10 +58,9 @@ impl ChildProcess {
                     &si,
                     &mut pi as *mut PROCESS_INFORMATION,
                 )
-            }
-            .as_bool();
+            };
 
-            if res {
+            if res.as_bool() {
                 Ok(Self {
                     command: command.to_string(),
                     process_information: pi,
@@ -87,10 +86,10 @@ impl ChildProcess {
 
     pub fn kill(&self) -> Result<(), ChildProcessError> {
         unsafe {
-            let res = TerminateProcess(self.process_information.hProcess, 0).as_bool();
+            let res = TerminateProcess(self.process_information.hProcess, 0);
             close_handle(self.process_information);
 
-            if res {
+            if res.as_bool() {
                 Ok(())
             } else {
                 Err(format!("cannot kill process: {:?}", GetLastError()))
