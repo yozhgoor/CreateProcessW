@@ -85,6 +85,16 @@ impl ChildProcess {
         }
     }
 
+    pub fn try_wait(&self, duration: u32) -> Result<ExitStatus, ExitStatusError> {
+        unsafe {
+            if WaitForSingleObject(self.process_information.hProcess, duration) == 0 {
+                Ok(ExitStatus(0))
+            } else {
+                Err(ExitStatusError::WaitFailed(0))
+            }
+        }
+    }
+
     pub fn kill(&self) -> Result<(), ChildProcessError> {
         unsafe {
             if TerminateProcess(self.process_information.hProcess, 0).as_bool() {
@@ -117,4 +127,14 @@ impl ExitStatus {
     pub fn code(&self) -> u32 {
         self.0
     }
+}
+
+#[derive(Error, Debug)]
+pub enum ExitStatusError {
+    #[error("failed to wait ({0})")]
+    WaitFailed(u32),
+    #[error("time-out elapsed ({0})")]
+    WaitTimeout(u32),
+    #[error("wait abandoned ({0})")]
+    WaitAbandoned(u32)
 }
