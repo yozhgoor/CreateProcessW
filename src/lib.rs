@@ -75,10 +75,6 @@ impl ChildProcess {
         }
     }
 
-    pub fn command(&self) -> String {
-        self.command.clone()
-    }
-
     pub fn wait(&self) -> ExitStatus {
         unsafe {
             let exit_code = WaitForSingleObject(self.process_information.hProcess, INFINITE);
