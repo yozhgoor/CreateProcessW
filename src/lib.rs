@@ -4,7 +4,7 @@ use std::ffi::c_void;
 use std::mem::size_of;
 use std::path::Path;
 use thiserror::Error;
-use windows::Win32::Foundation::{CloseHandle, PWSTR, GetLastError};
+use windows::Win32::Foundation::{CloseHandle, GetLastError, PWSTR};
 use windows::Win32::Security::SECURITY_ATTRIBUTES;
 use windows::Win32::System::Threading::{
     GetExitCodeProcess, TerminateProcess, WaitForSingleObject, PROCESS_CREATION_FLAGS,
@@ -143,7 +143,5 @@ impl ExitStatus {
 }
 
 fn get_last_error() -> u32 {
-    unsafe {
-        GetLastError().0
-    }
+    unsafe { GetLastError().0 }
 }
