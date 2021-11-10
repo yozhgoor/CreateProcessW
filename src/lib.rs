@@ -7,8 +7,8 @@ use thiserror::Error;
 use windows::Win32::Foundation::{CloseHandle, GetLastError, PWSTR};
 use windows::Win32::Security::SECURITY_ATTRIBUTES;
 use windows::Win32::System::Threading::{
-    TerminateProcess, WaitForSingleObject, PROCESS_CREATION_FLAGS, PROCESS_INFORMATION,
-    STARTUPINFOW,
+    GetExitCodeProcess, TerminateProcess, WaitForSingleObject, PROCESS_CREATION_FLAGS,
+    PROCESS_INFORMATION, STARTUPINFOW,
 };
 use windows::Win32::System::WindowsProgramming::INFINITE;
 
@@ -22,7 +22,7 @@ impl ChildProcess {
     pub fn new(
         command: &str,
         inherit_handles: bool,
-        current_directory: Option<impl AsRef<Path>>,
+        current_directory: Option<&Path>,
     ) -> Result<Self, ChildProcessError> {
         unsafe {
             let mut si = STARTUPINFOW::default();
@@ -33,7 +33,7 @@ impl ChildProcess {
             let process_creation_flags = PROCESS_CREATION_FLAGS(0);
 
             let res = if let Some(directory) = current_directory {
-                let directory = directory.as_ref().as_os_str();
+                let directory = directory.as_os_str();
                 windows::Win32::System::Threading::CreateProcessW(
                     PWSTR::default(),
                     command,
@@ -85,11 +85,21 @@ impl ChildProcess {
         }
     }
 
-    pub fn try_wait(&self, duration: u32) -> Result<ExitStatus, ExitStatusError> {
+    pub fn try_wait(&self) -> Result<Option<ExitStatus>, ExitStatusError> {
+        let mut exit_code: u32 = 0;
         unsafe {
-            match WaitForSingleObject(self.process_information.hProcess, duration) {
-                0 => Ok(ExitStatus(0)),
-                _ => Err(ExitStatusError::WaitFailed(format!("{:?}", GetLastError()))),
+            if GetExitCodeProcess(
+                self.process_information.hProcess,
+                &mut exit_code as *mut u32,
+            )
+            .as_bool()
+            {
+                match exit_code {
+                    259 => Ok(None),
+                    _ => Ok(Some(ExitStatus(exit_code))),
+                }
+            } else {
+                Err(ExitStatusError::WaitFailed(format!("{:?}", GetLastError())))
             }
         }
     }
@@ -130,10 +140,6 @@ impl ExitStatus {
 
 #[derive(Error, Debug)]
 pub enum ExitStatusError {
-    #[error("time-out elapsed ({0})")]
-    WaitTimeout(u32),
-    #[error("wait abandoned ({0})")]
-    WaitAbandoned(u32),
-    #[error("failed to wait: {0}")]
+    #[error("cannot wait: {0}")]
     WaitFailed(String),
 }
