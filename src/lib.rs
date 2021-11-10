@@ -4,7 +4,7 @@ use std::ffi::c_void;
 use std::mem::size_of;
 use std::path::Path;
 use thiserror::Error;
-use windows::Win32::Foundation::{CloseHandle, GetLastError, PWSTR};
+use windows::Win32::Foundation::{CloseHandle, PWSTR};
 use windows::Win32::Security::SECURITY_ATTRIBUTES;
 use windows::Win32::System::Threading::{
     GetExitCodeProcess, TerminateProcess, WaitForSingleObject, PROCESS_CREATION_FLAGS,
@@ -12,9 +12,20 @@ use windows::Win32::System::Threading::{
 };
 use windows::Win32::System::WindowsProgramming::INFINITE;
 
+#[derive(Error, Debug)]
+pub enum Error {
+    #[error("cannot create process")]
+    CreationFailed,
+    #[error("cannot wait process")]
+    WaitFailed,
+    #[error("cannot kill process")]
+    KillFailed,
+}
+
+type Result<T> = std::result::Result<T, Error>;
+
 #[derive(Debug)]
 pub struct ChildProcess {
-    command: String,
     process_information: PROCESS_INFORMATION,
 }
 
@@ -23,7 +34,7 @@ impl ChildProcess {
         command: &str,
         inherit_handles: bool,
         current_directory: Option<&Path>,
-    ) -> Result<Self, ChildProcessError> {
+    ) -> Result<Self> {
         unsafe {
             let mut si = STARTUPINFOW::default();
             let mut pi = PROCESS_INFORMATION::default();
@@ -63,11 +74,10 @@ impl ChildProcess {
 
             if res.as_bool() {
                 Ok(Self {
-                    command: command.to_string(),
                     process_information: pi,
                 })
             } else {
-                Err(ChildProcessError::CreationFailed(get_last_error()))
+                Err(Error::CreationFailed)
             }
         }
     }
@@ -89,7 +99,7 @@ impl ChildProcess {
         ExitStatus(exit_code)
     }
 
-    pub fn try_wait(&self) -> Result<Option<ExitStatus>, ExitStatusError> {
+    pub fn try_wait(&self) -> Result<Option<ExitStatus>> {
         let mut exit_code: u32 = 0;
 
         let res = unsafe {
@@ -105,27 +115,19 @@ impl ChildProcess {
                 _ => Ok(Some(ExitStatus(exit_code))),
             }
         } else {
-            Err(ExitStatusError::WaitFailed(get_last_error()))
+            Err(Error::WaitFailed)
         }
     }
 
-    pub fn kill(&self) -> Result<(), ChildProcessError> {
+    pub fn kill(&self) -> Result<()> {
         let res = unsafe { TerminateProcess(self.process_information.hProcess, 0) };
 
         if res.as_bool() {
             Ok(())
         } else {
-            Err(ChildProcessError::KillFailed(get_last_error()))
+            Err(Error::KillFailed)
         }
     }
-}
-
-#[derive(Error, Debug)]
-pub enum ChildProcessError {
-    #[error("cannot create process: {0}")]
-    CreationFailed(String),
-    #[error("cannot kill process: {0}")]
-    KillFailed(String),
 }
 
 pub struct ExitStatus(u32);
@@ -138,14 +140,4 @@ impl ExitStatus {
     pub fn code(&self) -> u32 {
         self.0
     }
-}
-
-#[derive(Error, Debug)]
-pub enum ExitStatusError {
-    #[error("cannot wait process: {0}")]
-    WaitFailed(String),
-}
-
-fn get_last_error() -> String {
-    unsafe { format!("{:?}", GetLastError()) }
 }
