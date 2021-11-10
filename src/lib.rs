@@ -4,7 +4,7 @@ use std::ffi::c_void;
 use std::mem::size_of;
 use std::path::Path;
 use thiserror::Error;
-use windows::Win32::Foundation::{CloseHandle, PWSTR};
+use windows::Win32::Foundation::{CloseHandle, PWSTR, GetLastError};
 use windows::Win32::Security::SECURITY_ATTRIBUTES;
 use windows::Win32::System::Threading::{
     GetExitCodeProcess, TerminateProcess, WaitForSingleObject, PROCESS_CREATION_FLAGS,
@@ -14,12 +14,12 @@ use windows::Win32::System::WindowsProgramming::INFINITE;
 
 #[derive(Error, Debug)]
 pub enum Error {
-    #[error("cannot create process")]
-    CreationFailed,
-    #[error("cannot wait process")]
-    WaitFailed,
-    #[error("cannot kill process")]
-    KillFailed,
+    #[error("cannot create process: {0}")]
+    CreationFailed(u32),
+    #[error("cannot wait process: {0}")]
+    WaitFailed(u32),
+    #[error("cannot kill process: {0}")]
+    KillFailed(u32),
 }
 
 type Result<T> = std::result::Result<T, Error>;
@@ -77,7 +77,7 @@ impl ChildProcess {
                     process_information: pi,
                 })
             } else {
-                Err(Error::CreationFailed)
+                Err(Error::CreationFailed(get_last_error()))
             }
         }
     }
@@ -115,7 +115,7 @@ impl ChildProcess {
                 _ => Ok(Some(ExitStatus(exit_code))),
             }
         } else {
-            Err(Error::WaitFailed)
+            Err(Error::WaitFailed(get_last_error()))
         }
     }
 
@@ -125,7 +125,7 @@ impl ChildProcess {
         if res.as_bool() {
             Ok(())
         } else {
-            Err(Error::KillFailed)
+            Err(Error::KillFailed(get_last_error()))
         }
     }
 }
@@ -139,5 +139,11 @@ impl ExitStatus {
 
     pub fn code(&self) -> u32 {
         self.0
+    }
+}
+
+fn get_last_error() -> u32 {
+    unsafe {
+        GetLastError().0
     }
 }
