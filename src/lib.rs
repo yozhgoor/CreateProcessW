@@ -77,7 +77,13 @@ impl ChildProcess {
 
     pub fn wait(&self) -> ExitStatus {
         unsafe {
-            let exit_code = WaitForSingleObject(self.process_information.hProcess, INFINITE);
+            let mut exit_code: u32 = 0;
+
+            WaitForSingleObject(self.process_information.hProcess, INFINITE);
+            GetExitCodeProcess(
+                self.process_information.hProcess,
+                &mut exit_code as *mut u32,
+            );
             CloseHandle(self.process_information.hProcess);
             CloseHandle(self.process_information.hThread);
 
