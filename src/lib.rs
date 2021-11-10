@@ -67,66 +67,62 @@ impl ChildProcess {
                     process_information: pi,
                 })
             } else {
-                Err(ChildProcessError::CreationFailed(format!(
-                    "{:?}",
-                    GetLastError()
-                )))
+                Err(ChildProcessError::CreationFailed(get_last_error()))
             }
         }
     }
 
     pub fn wait(&self) -> ExitStatus {
-        unsafe {
-            let mut exit_code: u32 = 0;
+        let mut exit_code: u32 = 0;
 
+        unsafe {
             WaitForSingleObject(self.process_information.hProcess, INFINITE);
             GetExitCodeProcess(
                 self.process_information.hProcess,
                 &mut exit_code as *mut u32,
             );
+
             CloseHandle(self.process_information.hProcess);
             CloseHandle(self.process_information.hThread);
-
-            ExitStatus(exit_code)
         }
+
+        ExitStatus(exit_code)
     }
 
     pub fn try_wait(&self) -> Result<Option<ExitStatus>, ExitStatusError> {
         let mut exit_code: u32 = 0;
-        unsafe {
-            if GetExitCodeProcess(
+
+        let res = unsafe {
+            GetExitCodeProcess(
                 self.process_information.hProcess,
                 &mut exit_code as *mut u32,
             )
-            .as_bool()
-            {
-                match exit_code {
-                    259 => Ok(None),
-                    _ => Ok(Some(ExitStatus(exit_code))),
-                }
-            } else {
-                Err(ExitStatusError::WaitFailed(format!("{:?}", GetLastError())))
+        };
+
+        if res.as_bool() {
+            match exit_code {
+                259 => Ok(None),
+                _ => Ok(Some(ExitStatus(exit_code))),
             }
+        } else {
+            Err(ExitStatusError::WaitFailed(get_last_error()))
         }
     }
 
     pub fn kill(&self) -> Result<(), ChildProcessError> {
-        unsafe {
-            if TerminateProcess(self.process_information.hProcess, 0).as_bool() {
-                Ok(())
-            } else {
-                Err(ChildProcessError::KillFailed(format!(
-                    "{:?}",
-                    GetLastError()
-                )))
-            }
+        let res = unsafe { TerminateProcess(self.process_information.hProcess, 0) };
+
+        if res.as_bool() {
+            Ok(())
+        } else {
+            Err(ChildProcessError::KillFailed(get_last_error()))
         }
     }
 }
 
 #[derive(Error, Debug)]
 pub enum ChildProcessError {
-    #[error("cannot create childprocess: {0}")]
+    #[error("cannot create process: {0}")]
     CreationFailed(String),
     #[error("cannot kill process: {0}")]
     KillFailed(String),
@@ -146,6 +142,10 @@ impl ExitStatus {
 
 #[derive(Error, Debug)]
 pub enum ExitStatusError {
-    #[error("cannot wait: {0}")]
+    #[error("cannot wait process: {0}")]
     WaitFailed(String),
+}
+
+fn get_last_error() -> String {
+    unsafe { format!("{:?}", GetLastError()) }
 }
