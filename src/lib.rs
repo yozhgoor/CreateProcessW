@@ -4,11 +4,11 @@ use std::ffi::{c_void, OsStr, OsString};
 use std::mem::size_of;
 use std::path::{Path, PathBuf};
 use thiserror::Error;
-use windows::Win32::Foundation::{CloseHandle, GetLastError, PWSTR};
+use windows::Win32::Foundation::{CloseHandle, GetLastError, PWSTR, STATUS_PENDING};
 use windows::Win32::Security::SECURITY_ATTRIBUTES;
 use windows::Win32::System::Threading::{
     GetExitCodeProcess, TerminateProcess, WaitForSingleObject, PROCESS_CREATION_FLAGS,
-    PROCESS_INFORMATION, STARTUPINFOW,
+    PROCESS_INFORMATION, STARTUPINFOW, WAIT_OBJECT_0,
 };
 use windows::Win32::System::WindowsProgramming::INFINITE;
 
@@ -16,8 +16,8 @@ use windows::Win32::System::WindowsProgramming::INFINITE;
 pub enum Error {
     #[error("cannot create process: {0}")]
     CreationFailed(u32),
-    #[error("cannot wait process: {0}")]
-    WaitFailed(u32),
+    #[error("cannot get exit status: {0}")]
+    GetExitCodeFailed(u32),
     #[error("cannot kill process: {0}")]
     KillFailed(u32),
 }
@@ -27,34 +27,34 @@ type Result<T> = std::result::Result<T, Error>;
 #[derive(Debug)]
 pub struct Command {
     command: OsString,
-    inherit_handles: Option<bool>,
+    inherit_handles: bool,
     current_directory: Option<PathBuf>,
 }
 
 impl Command {
-    pub fn new(command: impl AsRef<OsStr>) -> Command {
-        Command {
-            command: command.as_ref().to_owned(),
-            inherit_handles: None,
+    pub fn new(command: impl Into<OsString>) -> Self {
+        Self {
+            command: command.into(),
+            inherit_handles: true,
             current_directory: None,
         }
     }
 
-    pub fn inherit(mut self, bool: bool) -> Command {
-        self.inherit_handles = Some(bool);
+    pub fn inherit(&mut self, inherit: bool) -> &mut Self {
+        self.inherit_handles = inherit;
         self
     }
 
-    pub fn current_dir(mut self, dir: impl AsRef<Path>) -> Command {
-        self.current_directory = Some(dir.as_ref().to_owned());
+    pub fn current_dir(&mut self, dir: impl Into<PathBuf>) -> &mut Self {
+        self.current_directory = Some(dir.into());
         self
     }
 
     pub fn spawn(&mut self) -> Result<Child> {
         match Child::new(
             &self.command,
-            self.inherit_handles.unwrap_or(false),
-            self.current_directory.as_ref(),
+            self.inherit_handles,
+            self.current_directory.as_deref(),
         ) {
             Ok(child) => Ok(child),
             Err(err) => Err(err),
@@ -63,7 +63,7 @@ impl Command {
 
     pub fn status(&mut self) -> Result<ExitStatus> {
         match self.spawn() {
-            Ok(child) => Ok(child.wait()),
+            Ok(child) => child.wait(),
             Err(err) => Err(err),
         }
     }
@@ -78,13 +78,13 @@ impl Child {
     fn new(
         command: &OsStr,
         inherit_handles: bool,
-        current_directory: Option<&PathBuf>,
+        current_directory: Option<&Path>,
     ) -> Result<Self> {
         unsafe {
-            let mut si = STARTUPINFOW::default();
-            let mut pi = PROCESS_INFORMATION::default();
+            let mut startup_info = STARTUPINFOW::default();
+            let mut process_info = PROCESS_INFORMATION::default();
 
-            si.cb = size_of::<STARTUPINFOW>() as u32;
+            startup_info.cb = size_of::<STARTUPINFOW>() as u32;
 
             let process_creation_flags = PROCESS_CREATION_FLAGS(0);
 
@@ -99,8 +99,8 @@ impl Child {
                     process_creation_flags,
                     std::ptr::null() as *const c_void,
                     directory,
-                    &si,
-                    &mut pi as *mut PROCESS_INFORMATION,
+                    &startup_info,
+                    &mut process_info as *mut PROCESS_INFORMATION,
                 )
             } else {
                 windows::Win32::System::Threading::CreateProcessW(
@@ -112,14 +112,14 @@ impl Child {
                     process_creation_flags,
                     std::ptr::null() as *const c_void,
                     PWSTR::default(),
-                    &si,
-                    &mut pi as *mut PROCESS_INFORMATION,
+                    &startup_info,
+                    &mut process_info as *mut PROCESS_INFORMATION,
                 )
             };
 
             if res.as_bool() {
                 Ok(Self {
-                    process_information: pi,
+                    process_information: process_info,
                 })
             } else {
                 Err(Error::CreationFailed(get_last_error()))
@@ -127,21 +127,28 @@ impl Child {
         }
     }
 
-    pub fn wait(&self) -> ExitStatus {
+    pub fn wait(&self) -> Result<ExitStatus> {
         let mut exit_code: u32 = 0;
 
         unsafe {
-            WaitForSingleObject(self.process_information.hProcess, INFINITE);
-            GetExitCodeProcess(
-                self.process_information.hProcess,
-                &mut exit_code as *mut u32,
-            );
+            let res = WaitForSingleObject(self.process_information.hProcess, INFINITE);
 
-            CloseHandle(self.process_information.hProcess);
-            CloseHandle(self.process_information.hThread);
+            if res == WAIT_OBJECT_0 {
+                if GetExitCodeProcess(
+                    self.process_information.hProcess,
+                    &mut exit_code as *mut u32,
+                )
+                .as_bool()
+                {
+                    close_handle(self.process_information);
+                    Ok(ExitStatus(exit_code))
+                } else {
+                    Err(Error::GetExitCodeFailed(get_last_error()))
+                }
+            } else {
+                Err(Error::GetExitCodeFailed(get_last_error()))
+            }
         }
-
-        ExitStatus(exit_code)
     }
 
     pub fn try_wait(&self) -> Result<Option<ExitStatus>> {
@@ -155,12 +162,14 @@ impl Child {
         };
 
         if res.as_bool() {
-            match exit_code {
-                259 => Ok(None),
-                _ => Ok(Some(ExitStatus(exit_code))),
+            if exit_code == STATUS_PENDING.0 {
+                Ok(None)
+            } else {
+                close_handle(self.process_information);
+                Ok(Some(ExitStatus(exit_code)))
             }
         } else {
-            Err(Error::WaitFailed(get_last_error()))
+            Err(Error::GetExitCodeFailed(get_last_error()))
         }
     }
 
@@ -189,4 +198,11 @@ impl ExitStatus {
 
 fn get_last_error() -> u32 {
     unsafe { GetLastError().0 }
+}
+
+fn close_handle(process_info: PROCESS_INFORMATION) {
+    unsafe {
+        CloseHandle(process_info.hProcess);
+        CloseHandle(process_info.hThread);
+    }
 }
