@@ -1,8 +1,8 @@
 #![allow(non_snake_case)]
 
-use std::ffi::c_void;
+use std::ffi::{c_void, OsStr, OsString};
 use std::mem::size_of;
-use std::path::Path;
+use std::path::{Path, PathBuf};
 use thiserror::Error;
 use windows::Win32::Foundation::{CloseHandle, GetLastError, PWSTR};
 use windows::Win32::Security::SECURITY_ATTRIBUTES;
@@ -25,15 +25,60 @@ pub enum Error {
 type Result<T> = std::result::Result<T, Error>;
 
 #[derive(Debug)]
-pub struct ChildProcess {
+pub struct Command {
+    command: OsString,
+    inherit_handles: Option<bool>,
+    current_directory: Option<PathBuf>,
+}
+
+impl Command {
+    pub fn new(command: impl AsRef<OsStr>) -> Command {
+        Command {
+            command: command.as_ref().to_owned(),
+            inherit_handles: None,
+            current_directory: None,
+        }
+    }
+
+    pub fn inherit(mut self, bool: bool) -> Command {
+        self.inherit_handles = Some(bool);
+        self
+    }
+
+    pub fn current_dir(mut self, dir: impl AsRef<Path>) -> Command {
+        self.current_directory = Some(dir.as_ref().to_owned());
+        self
+    }
+
+    pub fn spawn(&mut self) -> Result<Child> {
+        match Child::new(
+            &self.command,
+            self.inherit_handles.unwrap_or(false),
+            self.current_directory.as_ref(),
+        ) {
+            Ok(child) => Ok(child),
+            Err(err) => Err(err),
+        }
+    }
+
+    pub fn status(&mut self) -> Result<ExitStatus> {
+        match self.spawn() {
+            Ok(child) => Ok(child.wait()),
+            Err(err) => Err(err),
+        }
+    }
+}
+
+#[derive(Debug)]
+pub struct Child {
     process_information: PROCESS_INFORMATION,
 }
 
-impl ChildProcess {
-    pub fn new(
-        command: &str,
+impl Child {
+    fn new(
+        command: &OsStr,
         inherit_handles: bool,
-        current_directory: Option<&Path>,
+        current_directory: Option<&PathBuf>,
     ) -> Result<Self> {
         unsafe {
             let mut si = STARTUPINFOW::default();
