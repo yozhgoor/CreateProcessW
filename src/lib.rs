@@ -42,7 +42,7 @@ impl Command {
         }
     }
 
-    pub fn inherit(&mut self, inherit: bool) -> &mut Self {
+    pub fn inherit_handles(&mut self, inherit: bool) -> &mut Self {
         self.inherit_handles = inherit;
         self
     }
@@ -53,20 +53,15 @@ impl Command {
     }
 
     pub fn spawn(&mut self) -> Result<Child> {
-        unsafe {
-            Child::new(
-                &self.command,
-                self.inherit_handles,
-                self.current_directory.as_deref(),
-            )
-        }
+        Child::new(
+            &self.command,
+            self.inherit_handles,
+            self.current_directory.as_deref(),
+        )
     }
 
     pub fn status(&mut self) -> Result<ExitStatus> {
-        match self.spawn() {
-            Ok(child) => child.wait(),
-            Err(err) => Err(err),
-        }
+        self.spawn()?.wait()
     }
 }
 
@@ -76,7 +71,7 @@ pub struct Child {
 }
 
 impl Child {
-    unsafe fn new(
+    fn new(
         command: &OsStr,
         inherit_handles: bool,
         current_directory: Option<&Path>,
@@ -88,33 +83,35 @@ impl Child {
 
         let process_creation_flags = PROCESS_CREATION_FLAGS(0);
 
-        let res = if let Some(directory) = current_directory {
-            let directory = directory.as_os_str();
-            windows::Win32::System::Threading::CreateProcessW(
-                PWSTR::default(),
-                command,
-                std::ptr::null() as *const SECURITY_ATTRIBUTES,
-                std::ptr::null() as *const SECURITY_ATTRIBUTES,
-                inherit_handles,
-                process_creation_flags,
-                std::ptr::null() as *const c_void,
-                directory,
-                &startup_info,
-                &mut process_info as *mut PROCESS_INFORMATION,
-            )
-        } else {
-            windows::Win32::System::Threading::CreateProcessW(
-                PWSTR::default(),
-                command,
-                std::ptr::null() as *const SECURITY_ATTRIBUTES,
-                std::ptr::null() as *const SECURITY_ATTRIBUTES,
-                inherit_handles,
-                process_creation_flags,
-                std::ptr::null() as *const c_void,
-                PWSTR::default(),
-                &startup_info,
-                &mut process_info as *mut PROCESS_INFORMATION,
-            )
+        let res = unsafe {
+            if let Some(directory) = current_directory {
+                let directory = directory.as_os_str();
+                windows::Win32::System::Threading::CreateProcessW(
+                    PWSTR::default(),
+                    command,
+                    std::ptr::null() as *const SECURITY_ATTRIBUTES,
+                    std::ptr::null() as *const SECURITY_ATTRIBUTES,
+                    inherit_handles,
+                    process_creation_flags,
+                    std::ptr::null() as *const c_void,
+                    directory,
+                    &startup_info,
+                    &mut process_info as *mut PROCESS_INFORMATION,
+                )
+            } else {
+                windows::Win32::System::Threading::CreateProcessW(
+                    PWSTR::default(),
+                    command,
+                    std::ptr::null() as *const SECURITY_ATTRIBUTES,
+                    std::ptr::null() as *const SECURITY_ATTRIBUTES,
+                    inherit_handles,
+                    process_creation_flags,
+                    std::ptr::null() as *const c_void,
+                    PWSTR::default(),
+                    &startup_info,
+                    &mut process_info as *mut PROCESS_INFORMATION,
+                )
+            }
         };
 
         if res.as_bool() {
@@ -122,14 +119,13 @@ impl Child {
                 process_information: process_info,
             })
         } else {
-            Err(Error::CreationFailed(GetLastError().0))
+            Err(Error::CreationFailed(unsafe { GetLastError().0 }))
         }
     }
 
     pub fn wait(&self) -> Result<ExitStatus> {
-        let mut exit_code: u32 = 0;
-
         unsafe {
+            let mut exit_code: u32 = 0;
             let res = WaitForSingleObject(self.process_information.hProcess, INFINITE);
 
             if res == WAIT_OBJECT_0 {
@@ -139,7 +135,7 @@ impl Child {
                 )
                 .as_bool()
                 {
-                    close_handle(&self.process_information);
+                    close_handles(&self.process_information);
                     Ok(ExitStatus(exit_code))
                 } else {
                     Err(Error::GetExitCodeFailed(GetLastError().0))
@@ -151,34 +147,36 @@ impl Child {
     }
 
     pub fn try_wait(&self) -> Result<Option<ExitStatus>> {
-        let mut exit_code: u32 = 0;
+        unsafe {
+            let mut exit_code: u32 = 0;
 
-        let res = unsafe {
-            GetExitCodeProcess(
+            let res = GetExitCodeProcess(
                 self.process_information.hProcess,
                 &mut exit_code as *mut u32,
-            )
-        };
+            );
 
-        if res.as_bool() {
-            if exit_code == STATUS_PENDING.0 {
-                Ok(None)
+            if res.as_bool() {
+                if exit_code == STATUS_PENDING.0 {
+                    Ok(None)
+                } else {
+                    close_handles(&self.process_information);
+                    Ok(Some(ExitStatus(exit_code)))
+                }
             } else {
-                close_handle(&self.process_information);
-                Ok(Some(ExitStatus(exit_code)))
+                Err(Error::GetExitCodeFailed(GetLastError().0))
             }
-        } else {
-            Err(Error::GetExitCodeFailed(unsafe { GetLastError().0 }))
         }
     }
 
     pub fn kill(&self) -> Result<()> {
-        let res = unsafe { TerminateProcess(self.process_information.hProcess, 0) };
+        unsafe {
+            let res = TerminateProcess(self.process_information.hProcess, 0);
 
-        if res.as_bool() {
-            Ok(())
-        } else {
-            Err(Error::KillFailed(unsafe { GetLastError().0 }))
+            if res.as_bool() {
+                Ok(())
+            } else {
+                Err(Error::KillFailed(GetLastError().0))
+            }
         }
     }
 }
@@ -195,9 +193,7 @@ impl ExitStatus {
     }
 }
 
-fn close_handle(process_info: &PROCESS_INFORMATION) {
-    unsafe {
-        CloseHandle(process_info.hProcess);
-        CloseHandle(process_info.hThread);
-    }
+unsafe fn close_handles(process_info: &PROCESS_INFORMATION) {
+    CloseHandle(process_info.hProcess);
+    CloseHandle(process_info.hThread);
 }
