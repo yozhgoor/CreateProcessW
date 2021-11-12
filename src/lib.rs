@@ -1,3 +1,5 @@
+// Disable warning for the crate name, not a really good way to do this but..
+// (https://github.com/rust-lang/rust/issues/45127)
 #![allow(non_snake_case)]
 
 use std::ffi::{c_void, OsStr, OsString};
