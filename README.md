@@ -28,16 +28,11 @@ Add the following to your `Cargo.toml`:
 
 ```toml
 [dependencies]
-CreateProcessW = "0.1.0"
-```
-
-This crate doesn't follow Rust's naming convention, if you want to avoid the
-warning about the crate name, you can use the following:
-
-```toml
-[dependencies]
 create_process_w = { version = "0.1.0", package = "CreateProcessW" }
 ```
+
+You can also use `CreateProcessW` directly, but this doesn't respect Rust's
+naming recommendations.
 
 ## Create a new Command
 
@@ -73,7 +68,7 @@ API:
 
 * `spawn` return a handle to the child process as a `Child` struct.
     ```rust
-    use CreateProcessW::Command;
+    use create_process_w::Command;
 
     let child = Command::new("notepad.exe").spawn().expect("cannot spawn notepad");
 
@@ -88,7 +83,7 @@ API:
     ```
 * `status` wait for it to finish and return an `ExitStatus`.
     ```rust
-    use CreateProcessW::Command;
+    use create_process_w::Command;
 
     let status = Command::new("notepad.exe").status();
 
