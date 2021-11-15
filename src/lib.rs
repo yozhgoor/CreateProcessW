@@ -189,6 +189,18 @@ impl Child {
         }
     }
 
+    pub fn kill(&self) -> Result<()> {
+        unsafe {
+            let res = TerminateProcess(self.process_information.hProcess, 0);
+
+            if res.as_bool() {
+                Ok(())
+            } else {
+                Err(Error::KillFailed(GetLastError().0))
+            }
+        }
+    }
+
     pub fn wait(&self) -> Result<ExitStatus> {
         unsafe {
             let mut exit_code: u32 = 0;
@@ -233,18 +245,13 @@ impl Child {
             }
         }
     }
+}
 
-    pub fn kill(&self) -> Result<()> {
-        unsafe {
-            let res = TerminateProcess(self.process_information.hProcess, 0);
+use windows::Win32::Foundation::CloseHandle;
 
-            if res.as_bool() {
-                Ok(())
-            } else {
-                Err(Error::KillFailed(GetLastError().0))
-            }
-        }
-    }
+unsafe fn close_handles(process_info: &PROCESS_INFORMATION) {
+    CloseHandle(process_info.hProcess);
+    CloseHandle(process_info.hThread);
 }
 
 pub struct ExitStatus(u32);
@@ -265,17 +272,10 @@ type Result<T> = std::result::Result<T, Error>;
 
 #[derive(Error, Debug)]
 pub enum Error {
-    #[error("cannot create process: {0}")]
+    #[error("cannot create process (code {:#x})", 0)]
     CreationFailed(u32),
-    #[error("cannot get exit status: {0}")]
+    #[error("cannot get exit status (code {:#x})", 0)]
     GetExitCodeFailed(u32),
-    #[error("cannot kill process: {0}")]
+    #[error("cannot kill process (code {:#x})", 0)]
     KillFailed(u32),
-}
-
-use windows::Win32::Foundation::CloseHandle;
-
-unsafe fn close_handles(process_info: &PROCESS_INFORMATION) {
-    CloseHandle(process_info.hProcess);
-    CloseHandle(process_info.hThread);
 }
