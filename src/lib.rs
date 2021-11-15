@@ -13,7 +13,7 @@
 //!
 //! This is equivalent of running:
 //!
-//! ```no_run
+//! ```ignore
 //! std::process::Command("cmd.exe")
 //!     .arg("/c")
 //!     .arg(any_command_string)
@@ -65,7 +65,7 @@ impl Command {
     ///
     /// Basic usage:
     ///
-    /// ```no_run
+    /// ```ignore
     /// use create_process_w::Command;
     ///
     /// Command::new("notepad.exe")
