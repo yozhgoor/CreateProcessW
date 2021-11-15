@@ -55,23 +55,20 @@ You can customize the command with these methods:
     The first part of the string before a space specifies the module name.
     If you are using a long file name that contains a space, use quoted strings
     to indicate where the file name ends and arguments begin. If the file name
-    does not contain an extension, `.exe` is appended. This is the equivalent of the
-    `lpCommandLine` parameter of the [`CreateProcessW`][create-process-w-parameters]
-    function.
+    does not contain an extension, `.exe` is appended.
 
 * `inherit_handles` enable/disable handles inherance.
     If this parameter is `true`, each inheritable handle in the calling process
     is inherited by the new process. If the parameter is `false`, the handles
     are not inherited. Note that inherited handles have the same value and
-    access rights as the original handles. The default value is `true` and this
-    is the equivalent of the `bInheritHandles` parameter of the
-    [`CreateProcessW`][create-process-w-parameters] function.
+    access rights as the original handles. The default value is `true`.
 
 * `current_directory` is the full path to the current directory for the process.
     If you don't provide a value, the new process will have the same current
-    drive and directory as the calling process and this is equivalent of the
-    `lpCurrentDirectory` parameter of the
-    [`CreateProcessW`][create-process-w-parameters] function.
+    drive and directory as the calling process.
+
+For more information, check the
+[`CreateProcessW` parameters documentation][create-process-w-parameters].
 
 ## Execute the command
 

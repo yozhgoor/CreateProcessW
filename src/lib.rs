@@ -53,6 +53,27 @@ pub struct Command {
 }
 
 impl Command {
+    /// Create a new `Command`, with the following default configuration:
+    ///
+    /// * Inherit handles of the calling process.
+    /// * Inherit the current drive and directory of the calling process.
+    ///
+    /// Builder methods are provided to change these defaults and otherwise
+    /// configure the process.
+    ///
+    /// # Examples
+    ///
+    /// Basic usage:
+    ///
+    /// ```
+    /// use create_process_w::Command;
+    ///
+    /// Command::new("notepad.exe")
+    ///     .spawn()
+    ///     .expect("notepad failed to start");
+    /// ```
+    ///
+    /// Equivalent to the `lpCommandLine` parameter of the [`CreateProcessW`] function.
     pub fn new(command: impl Into<OsString>) -> Self {
         Self {
             command: command.into(),
@@ -61,16 +82,29 @@ impl Command {
         }
     }
 
+    /// Enable/disable handles inherance.
+    ///
+    /// If this parameter is `true`, each inheritable handle in the calling
+    /// process is inherited by the new process. If the parameter is `false`,
+    /// the handles are not inherited. Note that inherited handles have the
+    /// same value and access rights as the original handles.
     pub fn inherit_handles(&mut self, inherit: bool) -> &mut Self {
         self.inherit_handles = inherit;
         self
     }
 
+    /// Sets the working directory for the child process.
+    ///
+    /// It's the full path to the current directory for the process.
+    ///
+    /// Note that you can use a raw string to avoid error when copy-pasting the
+    /// path (`r"<path>"`).
     pub fn current_directory(&mut self, dir: impl Into<PathBuf>) -> &mut Self {
         self.current_directory = Some(dir.into());
         self
     }
 
+    /// Executes the command as a child process, returning a handle to it.
     pub fn spawn(&mut self) -> Result<Child> {
         Child::new(
             &self.command,
@@ -79,6 +113,8 @@ impl Command {
         )
     }
 
+    /// Executes a command as a child process, waiting for it to finish and
+    /// collecting its status.
     pub fn status(&mut self) -> Result<ExitStatus> {
         self.spawn()?.wait()
     }
