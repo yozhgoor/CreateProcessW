@@ -47,9 +47,9 @@ only argument needed is the command line you want to execute.
 ```rust
 use create_process_w::Command;
 
-let command = Command::new("ls")
+let command = Command::new("cargo.exe check")
     .inherit_handles(false)
-    .current_dir("C:\\Users\\user\\repos");
+    .current_dir(r"C:\Users\user_name\repos\repo_name");
 ```
 
 ### Customization
