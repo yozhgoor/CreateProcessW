@@ -48,7 +48,7 @@ impl Command {
         self
     }
 
-    pub fn current_dir(&mut self, dir: impl Into<PathBuf>) -> &mut Self {
+    pub fn current_directory(&mut self, dir: impl Into<PathBuf>) -> &mut Self {
         self.current_directory = Some(dir.into());
         self
     }
