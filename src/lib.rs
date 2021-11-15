@@ -73,7 +73,8 @@ impl Command {
     ///     .expect("notepad failed to start");
     /// ```
     ///
-    /// Equivalent to the `lpCommandLine` parameter of the [`CreateProcessW`] function.
+    /// Equivalent to the `lpCommandLine` parameter of the
+    /// [`CreateProcessW`][CreateProcessW] function.
     pub fn new(command: impl Into<OsString>) -> Self {
         Self {
             command: command.into(),
@@ -95,16 +96,39 @@ impl Command {
 
     /// Sets the working directory for the child process.
     ///
-    /// It's the full path to the current directory for the process.
+    /// It's the full path to the current directory for the process. Note that
+    /// you can use a raw string to avoid error when copy-pasting the path.
     ///
-    /// Note that you can use a raw string to avoid error when copy-pasting the
-    /// path (`r"<path>"`).
+    /// # Examples
+    ///
+    /// Basic usage:
+    ///
+    /// ```ignore
+    /// use create_process_w::Command;
+    ///
+    /// let check = Command::new("cargo.exe check")
+    ///     .current_directory(r"C:\Users\<user>\repos\<repo_name>")
+    ///     .status()
+    ///     .expect("cargo check command failed");
+    /// ```
     pub fn current_directory(&mut self, dir: impl Into<PathBuf>) -> &mut Self {
         self.current_directory = Some(dir.into());
         self
     }
 
     /// Executes the command as a child process, returning a handle to it.
+    ///
+    /// # Examples
+    ///
+    /// Basic usage:
+    ///
+    /// ```ignore
+    /// use create_process_w::Command;
+    ///
+    /// Command::new("notepad.exe")
+    ///     .spawn()
+    ///     .expect("notepad failed to start");
+    /// ```
     pub fn spawn(&mut self) -> Result<Child> {
         Child::new(
             &self.command,
@@ -115,6 +139,22 @@ impl Command {
 
     /// Executes a command as a child process, waiting for it to finish and
     /// collecting its status.
+    ///
+    /// # Examples
+    ///
+    /// Basic usage:
+    ///
+    /// ```ignore
+    /// use create_process_w::Command;
+    ///
+    /// Command::new("notepad.exe")
+    ///     .status()
+    ///     .expect("failed to execute process");
+    ///
+    /// println!("process finished with: {}", status);
+    ///
+    /// assert!(status.success());
+    /// ```
     pub fn status(&mut self) -> Result<ExitStatus> {
         self.spawn()?.wait()
     }
