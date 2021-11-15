@@ -1,3 +1,8 @@
+// Disable warning for `non_snake_case` in the crate.
+// It's not the better way to disable this warning only for the crate name.
+// See https://github.com/rust-lang/rust/issues/45127
+#![allow(non_snake_case)]
+
 use std::ffi::{c_void, OsStr, OsString};
 use std::mem::size_of;
 use std::path::{Path, PathBuf};
