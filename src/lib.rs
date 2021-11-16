@@ -44,9 +44,9 @@
 use std::ffi::OsString;
 use std::path::PathBuf;
 
-#[derive(Debug)]
 /// A process builder, providing control over how a new process should be
 /// spawned.
+#[derive(Debug)]
 pub struct Command {
     command: OsString,
     inherit_handles: bool,
@@ -264,7 +264,7 @@ impl Child {
         }
     }
     /// Forces the child process to exit. If the child has already exited, a
-    /// [`KillFailed`] error is returned.
+    /// [\`KillFailed\`] error is returned.
     ///
     /// This function is used to unconditionally cause a process to exit and
     /// stops execution of all threads within the process and requests
@@ -460,7 +460,7 @@ unsafe fn close_handles(process_info: &PROCESS_INFORMATION) {
 ///
 /// This struct is used to represent the exit status or other termination of a
 /// child process. Child processes are created via the `Command` struct and
-/// their exit status is exposed through the [`status`] method, or the [`wait`]
+/// their exit status is exposed through the [\`status\`] method, or the [\`wait\`]
 /// method of a [`Child`] process.
 pub struct ExitStatus(u32);
 
@@ -483,6 +483,8 @@ use thiserror::Error;
 
 type Result<T> = std::result::Result<T, Error>;
 
+/// Returns an error code when an error occurs.
+///
 /// The error code linked to the Error are the result of the
 /// [`GetLastError`][get-last-error] function. The variants give some context
 /// to the user.
@@ -494,12 +496,19 @@ type Result<T> = std::result::Result<T, Error>;
 /// [system-error-codes]: https://docs.microsoft.com/en-us/windows/win32/debug/system-error-codes
 #[derive(Error, Debug)]
 pub enum Error {
+    /// An error occurred when creating a new child process.
     #[error("cannot create process (code {:#x})", 0)]
     CreationFailed(u32),
+
+    /// An error occurred when trying to get the exit code of the child process.
     #[error("cannot get exit status (code {:#x})", 0)]
     GetExitCodeFailed(u32),
+
+    /// An error occurred when trying to get the ID of the child process.
     #[error("cannot get process id (code {:#x})", 0)]
     GetProcessIdFailed(u32),
+
+    /// An error occurred when trying to terminate the child process.
     #[error("cannot kill process (code {:#x})", 0)]
     KillFailed(u32),
 }
