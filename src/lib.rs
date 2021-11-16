@@ -483,6 +483,7 @@ use thiserror::Error;
 
 type Result<T> = std::result::Result<T, Error>;
 
+#[allow(missing_docs)]
 #[derive(Error, Debug)]
 pub enum Error {
     #[error("cannot create process (code {:#x})", 0)]
