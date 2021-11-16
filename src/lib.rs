@@ -3,9 +3,13 @@
 // See https://github.com/rust-lang/rust/issues/45127
 #![allow(non_snake_case)]
 
-//! This crate provide an API similar to `std::process` to create and handle
-//! processes on Windows using the Win32 API through the [windows-rs] crate (see
-//! [this example].
+//! This crate provide an API similar to [`std::process`][std-process] to create
+//! and handle processes on Windows using the Win32 API through the
+//! [windows-rs][windows-rs] crate (see [this example][create-processes-example]).
+//!
+//! [std-process]: https://doc.rust-lang.org/std/process/index.html
+//! [windows-rs]: https://github.com/microsoft/windows-rs
+//! [create-processes-example]: https://docs.microsoft.com/en-us/windows/win32/procthread/creating-processes
 //!
 //! It's main difference with `std::process::Command` is that it allows running
 //! a command string instead of having to pass the command executable and the
@@ -36,7 +40,6 @@
 //!
 //! You can also use `CreateProcessW` directly, but this doesn't respect Rust's
 //! naming recommendations.
-//!
 use std::ffi::OsString;
 use std::path::PathBuf;
 
@@ -74,7 +77,9 @@ impl Command {
     /// ```
     ///
     /// Equivalent to the `lpCommandLine` parameter of the
-    /// [`CreateProcessW`][CreateProcessW] function.
+    /// [`CreateProcessW`][create-process-w-parameters] function.
+    ///
+    /// [create-process-w-parameters]: https://docs.microsoft.com/en-us/windows/win32/api/processthreadsapi/nf-processthreadsapi-createprocessw#parameters
     pub fn new(command: impl Into<OsString>) -> Self {
         Self {
             command: command.into(),
@@ -89,6 +94,11 @@ impl Command {
     /// process is inherited by the new process. If the parameter is `false`,
     /// the handles are not inherited. Note that inherited handles have the
     /// same value and access rights as the original handles.
+    ///
+    /// Equivalent to the `bInheritHandles` parameter of the
+    /// [`CreateProcessW`][create-process-w-parameters] function.
+    ///
+    /// [create-process-w-parameters]: https://docs.microsoft.com/en-us/windows/win32/api/processthreadsapi/nf-processthreadsapi-createprocessw#parameters
     pub fn inherit_handles(&mut self, inherit: bool) -> &mut Self {
         self.inherit_handles = inherit;
         self
@@ -111,6 +121,11 @@ impl Command {
     ///     .status()
     ///     .expect("cargo check command failed");
     /// ```
+    ///
+    /// Equivalent to the `lpCurrentDirectory` parameter of the
+    /// [`CreateProcessW`][create-process-w-parameters] function.
+    ///
+    /// [create-process-w-parameters]: https://docs.microsoft.com/en-us/windows/win32/api/processthreadsapi/nf-processthreadsapi-createprocessw#parameters
     pub fn current_directory(&mut self, dir: impl Into<PathBuf>) -> &mut Self {
         self.current_directory = Some(dir.into());
         self
