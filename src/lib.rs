@@ -2,7 +2,6 @@
 // It's not the better way to disable this warning only for the crate name.
 // See https://github.com/rust-lang/rust/issues/45127
 #![allow(non_snake_case)]
-
 #![deny(missing_docs)]
 
 //! This crate provide an API similar to [`std::process`][std-process] to create
@@ -172,8 +171,8 @@ use std::path::Path;
 use windows::Win32::Foundation::{GetLastError, PWSTR, STATUS_PENDING};
 use windows::Win32::Security::SECURITY_ATTRIBUTES;
 use windows::Win32::System::Threading::{
-    GetExitCodeProcess, TerminateProcess, WaitForSingleObject, PROCESS_CREATION_FLAGS,
-    PROCESS_INFORMATION, STARTUPINFOW, WAIT_OBJECT_0,
+    GetExitCodeProcess, GetProcessId, TerminateProcess, WaitForSingleObject,
+    PROCESS_CREATION_FLAGS, PROCESS_INFORMATION, STARTUPINFOW, WAIT_OBJECT_0,
 };
 use windows::Win32::System::WindowsProgramming::INFINITE;
 
@@ -414,7 +413,39 @@ impl Child {
         }
     }
 
-    // TODO: pub fn id(&self) -> u32
+    /// Returns process identifier associated with this child.
+    ///
+    /// Equivalent to the [`GetProcessId`][get-process-id] function.
+    ///
+    /// # Examples
+    ///
+    /// ```ignore
+    /// use create_process_w::Command;
+    ///
+    /// let mut command = Command::new("notepad.exe");
+    ///
+    /// if let Ok(child) = command.spawn() {
+    ///     match child.id() {
+    ///         Ok(id) => println!("Child's ID is {}", child.id());
+    ///         Err(err) => println!("Cannot get child's ID");
+    ///     } else {
+    ///         println!("notepad didn't start");
+    ///     }
+    /// }
+    /// ```
+    ///
+    /// [get-process-id]: https://docs.microsoft.com/en-us/windows/win32/api/processthreadsapi/nf-processthreadsapi-getprocessid
+    pub fn id(&self) -> Result<u32> {
+        // TODO: test this function on Windows
+        unsafe {
+            let process_id = GetProcessId(self.process_information.hProcess);
+
+            match process_id {
+                0 => Err(Error::GetProcessIdFailed(GetLastError().0)),
+                _ => Ok(process_id),
+            }
+        }
+    }
 }
 
 use windows::Win32::Foundation::CloseHandle;
@@ -446,6 +477,8 @@ pub enum Error {
     CreationFailed(u32),
     #[error("cannot get exit status (code {:#x})", 0)]
     GetExitCodeFailed(u32),
+    #[error("cannot get process id (code {:#x})", 0)]
+    GetProcessIdFailed(u32),
     #[error("cannot kill process (code {:#x})", 0)]
     KillFailed(u32),
 }
