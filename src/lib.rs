@@ -483,7 +483,15 @@ use thiserror::Error;
 
 type Result<T> = std::result::Result<T, Error>;
 
-#[allow(missing_docs)]
+/// The error code linked to the Error are the result of the
+/// [`GetLastError`][get-last-error] function. The variants give some context
+/// to the user.
+///
+/// If you want more information about an error code, you can look at the
+/// [`System Error Codes`][system-error-codes].
+///
+/// [get-last-error]: https://docs.microsoft.com/en-us/windows/win32/api/errhandlingapi/nf-errhandlingapi-getlasterror
+/// [system-error-codes]: https://docs.microsoft.com/en-us/windows/win32/debug/system-error-codes
 #[derive(Error, Debug)]
 pub enum Error {
     #[error("cannot create process (code {:#x})", 0)]
