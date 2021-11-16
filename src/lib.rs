@@ -450,18 +450,30 @@ impl Child {
 
 use windows::Win32::Foundation::CloseHandle;
 
+// This function isn't really necessary, but avoid code repetition
 unsafe fn close_handles(process_info: &PROCESS_INFORMATION) {
     CloseHandle(process_info.hProcess);
     CloseHandle(process_info.hThread);
 }
 
+/// Describe the result of a process after it has terminated.
+///
+/// This struct is used to represent the exit status or other termination of a
+/// child process. Child processes are created via the `Command` struct and
+/// their exit status is exposed through the [`status`] method, or the [`wait`]
+/// method of a [`Child`] process.
 pub struct ExitStatus(u32);
 
 impl ExitStatus {
+    /// Success is defined as a zero exit status.
+    ///
+    /// This function return `true` if the `ExitStatus` is zero and `false`
+    /// otherwise.
     pub fn success(&self) -> bool {
         self.0 == 0
     }
 
+    /// Returns the exit code of the process
     pub fn code(&self) -> u32 {
         self.0
     }
