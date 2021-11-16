@@ -3,6 +3,8 @@
 // See https://github.com/rust-lang/rust/issues/45127
 #![allow(non_snake_case)]
 
+#![deny(missing_docs)]
+
 //! This crate provide an API similar to [`std::process`][std-process] to create
 //! and handle processes on Windows using the Win32 API through the
 //! [windows-rs][windows-rs] crate (see [this example][create-processes-example]).
@@ -44,14 +46,11 @@ use std::ffi::OsString;
 use std::path::PathBuf;
 
 #[derive(Debug)]
-/// a process builder, providing control over how a new process should be
+/// A process builder, providing control over how a new process should be
 /// spawned.
 pub struct Command {
-    /// The command line you want to execute
     command: OsString,
-    /// Disable/enable handles inherance
     inherit_handles: bool,
-    /// The full path of the current directory for the process
     current_directory: Option<PathBuf>,
 }
 
@@ -65,8 +64,6 @@ impl Command {
     /// configure the process.
     ///
     /// # Examples
-    ///
-    /// Basic usage:
     ///
     /// ```ignore
     /// use create_process_w::Command;
@@ -111,8 +108,6 @@ impl Command {
     ///
     /// # Examples
     ///
-    /// Basic usage:
-    ///
     /// ```ignore
     /// use create_process_w::Command;
     ///
@@ -135,8 +130,6 @@ impl Command {
     ///
     /// # Examples
     ///
-    /// Basic usage:
-    ///
     /// ```ignore
     /// use create_process_w::Command;
     ///
@@ -156,8 +149,6 @@ impl Command {
     /// collecting its status.
     ///
     /// # Examples
-    ///
-    /// Basic usage:
     ///
     /// ```ignore
     /// use create_process_w::Command;
@@ -186,6 +177,36 @@ use windows::Win32::System::Threading::{
 };
 use windows::Win32::System::WindowsProgramming::INFINITE;
 
+/// Representation of a running or exited child process.
+///
+/// This structure is used to represent and manage child processes. A child
+/// process is created via the [`Command`] struct, which configures the spawning
+/// process and can itself be constructed using a builder-style interface.
+///
+/// # Warnings
+///
+/// Calling `wait` is necessary for the OS to release resources. A process that
+/// terminated but has not been waited on is still around as a "zombie". Leaving
+/// too many zombies around may exhaust global resources.
+///
+/// This library does *not* automatically wait on child processes (not even if
+/// the `Child` is dropped), it is up to the application developer to do so. As
+/// a consequence, dropping `Child` handles without waiting on them first is not
+/// recommended in long-running applications.
+///
+/// # Examples
+///
+/// ```ignore
+/// use create_process_w::Command;
+///
+/// let mut child = Command::new("notepad.exe")
+///     .spawn()
+///     .expect("failed to execute child");
+///
+/// let status = child.wait().expect("failed to wait on child");
+///
+/// assert!(status.success());
+/// ```
 #[derive(Debug)]
 pub struct Child {
     process_information: PROCESS_INFORMATION,
@@ -243,7 +264,34 @@ impl Child {
             Err(Error::CreationFailed(unsafe { GetLastError().0 }))
         }
     }
-
+    /// Forces the child process to exit. If the child has already exited, a
+    /// [`KillFailed`] error is returned.
+    ///
+    /// This function is used to unconditionally cause a process to exit and
+    /// stops execution of all threads within the process and requests
+    /// cancellation of all pending I/O. The terminated process cannot exit
+    /// until all pending I/O has been completed and canceled. When a
+    /// process terminates, its kernel object is not destroyed until all
+    /// processes that have open handles to the process have released those
+    /// handles.
+    ///
+    /// Equivalent to the [`TerminateProcess`][terminate-process] function.
+    /// Note that the value passed as the `uExitCode` is always `0` at the
+    /// moment.
+    ///
+    /// # Examples
+    ///
+    /// ```ignore
+    /// use create_process_w::Command;
+    ///
+    /// let mut command = Command::new("notepad.exe");
+    ///
+    /// if let Ok(mut child) = command.spawn() {
+    ///     child.kill().expect("notepad wasn't running");
+    /// } else {
+    ///     println!("notepad didn't start");
+    /// }
+    /// ```
     pub fn kill(&self) -> Result<()> {
         unsafe {
             let res = TerminateProcess(self.process_information.hProcess, 0);
@@ -256,6 +304,34 @@ impl Child {
         }
     }
 
+    /// Waits for the child to exit completely, returning the status that it
+    /// exited with and closing handles. This function will continue to have the
+    /// same return value after it has been called at least once.
+    ///
+    /// This is equivalent to calling the
+    /// [`WaitForSingleObject][wait-for-single-object] and the
+    /// [`CloseHandle`][close-handle] functions. The exit code is returned by
+    /// the [`GetExitCodeProcess`][get-exit-code] function.
+    ///
+    /// # Examples
+    ///
+    /// ```ignore
+    /// use create_process_w::Command;
+    ///
+    /// let mut command = Command::new("notepad.exe");
+    ///
+    /// if let Ok(mut child) = command.spawn() {
+    ///     child.wait().expect("command wasn't running");
+    ///     println!("Child has finished its execution!");
+    /// } else {
+    ///     println!("notepad didn't start");
+    /// }
+    /// ```
+    ///
+    /// [wait-for-single-object]: https://docs.microsoft.com/en-us/windows/win32/api/synchapi/nf-synchapi-waitforsingleobject
+    /// [close-handle]: https://docs.microsoft.com/en-us/windows/win32/api/handleapi/nf-handleapi-closehandle
+    /// [get-exit-code]: https://docs.microsoft.com/en-us/windows/win32/api/processthreadsapi/nf-processthreadsapi-getexitcodeprocess
+    ///
     pub fn wait(&self) -> Result<ExitStatus> {
         unsafe {
             let mut exit_code: u32 = 0;
@@ -279,6 +355,43 @@ impl Child {
         }
     }
 
+    /// Attemps to collect the exit status of the child if it has already
+    /// exited.
+    ///
+    /// This function will not block the calling thread and will only check to
+    /// see if the child process has exited or not.
+    ///
+    /// If the child has exited, then `Ok(Some(status))` is returned. If the
+    /// exit status is not available at this time then `Ok(None)` is returned.
+    /// If an error occurs, then that error is returned.
+    ///
+    /// Equivalent to the [`GetExitCodeProcess`][get-exit-code-process]
+    /// function.
+    ///
+    /// Note that this function will call [`CloseHandle`][close-handle] if the
+    /// child has exited.
+    ///
+    /// # Examples
+    ///
+    /// ```ignore
+    /// use create_process_w::Command;
+    ///
+    /// let mut child = Command::new("notepad.exe").spawn().unwrap();
+    ///
+    /// match child.try_wait() {
+    ///     Ok(Some(status)) => println!("exited with: {}", status),
+    ///     Ok(None) => {
+    ///         println!("status not ready yet, let's really wait");
+    ///         let res = child.wait();
+    ///         println!("result: {:?}", res);
+    ///     }
+    ///     Err(e) => println!("error attempting to wait: {}", e),
+    /// }
+    /// ```
+    ///
+    /// [close-handle]: https://docs.microsoft.com/en-us/windows/win32/api/handleapi/nf-handleapi-closehandle
+    /// [get-exit-code]: https://docs.microsoft.com/en-us/windows/win32/api/processthreadsapi/nf-processthreadsapi-getexitcodeprocess
+    ///
     pub fn try_wait(&self) -> Result<Option<ExitStatus>> {
         unsafe {
             let mut exit_code: u32 = 0;
@@ -300,6 +413,8 @@ impl Child {
             }
         }
     }
+
+    // TODO: pub fn id(&self) -> u32
 }
 
 use windows::Win32::Foundation::CloseHandle;
