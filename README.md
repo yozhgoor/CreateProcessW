@@ -52,7 +52,7 @@ let command = Command::new("cargo.exe check")
 
 ### Spawning a process
 
-The [`spawn`] function spawn the process and return a [`Child`] that
+The [`spawn`][Command::spawn] function spawn the process and return a [`Child`] that
 represents the spawned child process.
 
 ```rust
@@ -75,7 +75,7 @@ if status.success() {
 }
 ```
 
-The [`status`] function spawn a child process, wait for it to finish and
+The [`status`][Command::status] function spawn a child process, wait for it to finish and
 return its [`ExitStatus`].
 
 ```rust
@@ -93,6 +93,6 @@ if status.success() {
 ```
 
 [`Command`]: https://docs.rs/CreateProcessW/latest/CreateProcessW/struct.Command.html
-[`spawn`]: https://docs.rs/CreateProcessW/latest/CreateProcessW/struct.Command.html#method.spawn
-[`status`]: https://docs.rs/CreateProcessW/latest/CreateProcessW/struct.Command.html#method.status
 [`Child`]: https://docs.rs/CreateProcessW/latest/CreateProcessW/struct.Child.html
+[Command::spawn]: https://docs.rs/CreateProcessW/latest/CreateProcessW/struct.Command.html#method.spawn
+[Command::status]: https://docs.rs/CreateProcessW/latest/CreateProcessW/struct.Command.html#method.status

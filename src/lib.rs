@@ -56,7 +56,7 @@
 //!
 //! ## Spawning a process
 //!
-//! The [`spawn`] function spawn the process and return a [`Child`] that
+//! The [`spawn`][Command::spawn] function spawn the process and return a [`Child`] that
 //! represents the spawned child process.
 //!
 //! ```ignore
@@ -79,7 +79,7 @@
 //! }
 //! ```
 //!
-//! The [`status`] function spawn a child process, wait for it to finish and
+//! The [`status`][Command::status] function spawn a child process, wait for it to finish and
 //! return its [`ExitStatus`].
 //!
 //! ```ignore
