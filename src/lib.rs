@@ -97,7 +97,7 @@
 //! }
 //! ```
 //!
-//! //! [std-process]: https://doc.rust-lang.org/std/process/index.html
+//! [std-process]: https://doc.rust-lang.org/std/process/index.html
 //! [windows-rs]: https://github.com/microsoft/windows-rs
 //! [create-processes-example]: https://docs.microsoft.com/en-us/windows/win32/procthread/creating-processes
 use std::ffi::OsString;

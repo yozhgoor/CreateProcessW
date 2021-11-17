@@ -4,10 +4,6 @@ This crate provide an API similar to [`std::process`][std-process] to create
 and handle processes on Windows using the Win32 API through the
 [windows-rs][windows-rs] crate (see [this example][create-processes-example]).
 
-[std-process]: https://doc.rust-lang.org/std/process/index.html
-[windows-rs]: https://github.com/microsoft/windows-rs
-[create-processes-example]: https://docs.microsoft.com/en-us/windows/win32/procthread/creating-processes
-
 It's main difference with `std::process::Command` is that it allows running
 a command string instead of having to pass the command executable and the
 arguments separately.
@@ -91,6 +87,10 @@ if status.success() {
     println!("Process exited with status {}", status.code())
 }
 ```
+
+[std-process]: https://doc.rust-lang.org/std/process/index.html
+[windows-rs]: https://github.com/microsoft/windows-rs
+[create-processes-example]: https://docs.microsoft.com/en-us/windows/win32/procthread/creating-processes
 
 [`Command`]: https://docs.rs/CreateProcessW/latest/CreateProcessW/struct.Command.html
 [`Child`]: https://docs.rs/CreateProcessW/latest/CreateProcessW/struct.Child.html
