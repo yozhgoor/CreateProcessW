@@ -1,25 +1,24 @@
-// Disable warning for `non_snake_case` in the crate.
-// It's not the better way to disable this warning only for the crate name.
-// See https://github.com/rust-lang/rust/issues/45127
+// Disable warning for `non_snake_case` in the crate and when the lib is used as
+// a dependency. It's not the better way to disable this warning only for the
+// crate name. See https://github.com/rust-lang/rust/issues/45127
 #![allow(non_snake_case)]
 #![deny(missing_docs)]
 // intra-doc links need to be explicit in the README.tpl because they're not
 // parsed correctly when generating the README via cargo-readme.
 // See https://github.com/livioribeiro/cargo-readme/issues/55
-
 // The generation of the README need to be automated when a PR is pushed on main.
 
-//! This crate provide an API similar to [`std::process`][std-process] to create
+//! This crate provides an API similar to [`std::process`][std-process] to create
 //! and handle processes on Windows using the Win32 API through the
 //! [windows-rs][windows-rs] crate (see [this example][create-processes-example]).
 //!
-//! It's main difference with `std::process::Command` is that it allows running
+//! Its main difference with `std::process::Command` is that it allows running
 //! a command string instead of having to pass the command executable and the
 //! arguments separately.
 //!
 //! This is equivalent of running:
 //!
-//! ```ignore
+//! ```no_run
 //! std::process::Command("cmd.exe")
 //!     .arg("/c")
 //!     .arg(any_command_string)
@@ -40,14 +39,14 @@
 //! create_process_w = { version = "0.1.0", package = "CreateProcessW" }
 //! ```
 //!
-//! You can also use `CreateProcessW` directly, but this doesn't respect Rust's
-//! naming recommendations.
+//! You can also use `CreateProcessW` directly with no warning, but this doesn't
+//! respect Rust's naming recommendations.
 //!
 //! # Create a command
 //!
 //! The [`Command`] struct is used to configure and spawn processes:
 //!
-//! ```ignore
+//! ```no_run
 //! use create_process_w::Command;
 //!
 //! let command = Command::new("cargo.exe check")
@@ -57,10 +56,10 @@
 //!
 //! ## Spawning a process
 //!
-//! The [`spawn`][Command::spawn] function spawn the process and return a [`Child`] that
-//! represents the spawned child process.
+//! The [`spawn`][Command::spawn] function spawns the process and returns a
+//! [`Child`] that represents the spawned child process.
 //!
-//! ```ignore
+//! ```no_run
 //! use create_process_w::Command;
 //!
 //! let child = Command::new("notepad.exe")
@@ -80,10 +79,10 @@
 //! }
 //! ```
 //!
-//! The [`status`][Command::status] function spawn a child process, wait for it to finish and
-//! return its [`ExitStatus`].
+//! The [`status`][Command::status] function spawns a child process, waits for
+//! it to finish and returns its [`ExitStatus`].
 //!
-//! ```ignore
+//! ```no_run
 //! use create_process_w::Command;
 //!
 //! let status = Command::new("notepad.exe")
@@ -123,7 +122,7 @@ impl Command {
     ///
     /// # Examples
     ///
-    /// ```ignore
+    /// ```no_run
     /// use create_process_w::Command;
     ///
     /// Command::new("notepad.exe")
@@ -166,7 +165,7 @@ impl Command {
     ///
     /// # Examples
     ///
-    /// ```ignore
+    /// ```no_run
     /// use create_process_w::Command;
     ///
     /// let check = Command::new("cargo.exe check")
@@ -188,7 +187,7 @@ impl Command {
     ///
     /// # Examples
     ///
-    /// ```ignore
+    /// ```no_run
     /// use create_process_w::Command;
     ///
     /// Command::new("notepad.exe")
@@ -208,7 +207,7 @@ impl Command {
     ///
     /// # Examples
     ///
-    /// ```ignore
+    /// ```no_run
     /// use create_process_w::Command;
     ///
     /// Command::new("notepad.exe")
@@ -254,7 +253,7 @@ use windows::Win32::System::WindowsProgramming::INFINITE;
 ///
 /// # Examples
 ///
-/// ```ignore
+/// ```no_run
 /// use create_process_w::Command;
 ///
 /// let mut child = Command::new("notepad.exe")
@@ -346,7 +345,7 @@ impl Child {
     ///
     /// # Examples
     ///
-    /// ```ignore
+    /// ```no_run
     /// use create_process_w::Command;
     ///
     /// let mut command = Command::new("notepad.exe");
@@ -375,7 +374,8 @@ impl Child {
     /// exited with and closing handles. This function will continue to have the
     /// same return value after it has been called at least once.
     ///
-    /// If the function fail, it return a [`GetExitCodeFailed`][Error::GetExitCodeFailed] error.
+    /// If the function fail, it return a
+    /// [`GetExitCodeFailed`][Error::GetExitCodeFailed] error.
     ///
     /// This is equivalent to calling the
     /// [`WaitForSingleObject][wait-for-single-object] and the
@@ -383,7 +383,7 @@ impl Child {
     ///
     /// # Examples
     ///
-    /// ```ignore
+    /// ```no_run
     /// use create_process_w::Command;
     ///
     /// let mut command = Command::new("notepad.exe");
@@ -440,7 +440,7 @@ impl Child {
     ///
     /// # Examples
     ///
-    /// ```ignore
+    /// ```no_run
     /// use create_process_w::Command;
     ///
     /// let mut child = Command::new("notepad.exe").spawn().unwrap();
@@ -487,7 +487,7 @@ impl Child {
     ///
     /// # Examples
     ///
-    /// ```ignore
+    /// ```no_run
     /// use create_process_w::Command;
     ///
     /// let mut command = Command::new("notepad.exe");
@@ -583,4 +583,23 @@ pub enum Error {
     /// [`GetProcessId`](https://docs.microsoft.com/en-us/windows/win32/api/processthreadsapi/nf-processthreadsapi-getprocessid).
     #[error("cannot get process id (code {:#x})", 0)]
     GetProcessIdFailed(u32),
+}
+
+impl Error {
+    /// Return the system error code of the Error
+    ///
+    /// This error code isn't formatted like the code in the error string.
+    ///
+    /// To more information about this [codes][system-error-codes.]
+    ///
+    /// [system-error-codes]: https://docs.microsoft.com/en-us/windows/win32/debug/system-error-codes
+    pub fn code(&self) -> u32 {
+        match *self {
+            Self::CreationFailed(code) => code,
+            Self::WaitFailed(code) => code,
+            Self::KillFailed(code) => code,
+            Self::GetExitCodeFailed(code) => code,
+            Self::GetProcessIdFailed(code) => code,
+        }
+    }
 }
