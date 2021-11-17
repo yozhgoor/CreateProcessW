@@ -36,11 +36,17 @@
 //!
 //! ```toml
 //! [dependencies]
-//! create_process_w = { version = "0.1.0", package = "CreateProcessW" }
+//! CreateProcessW = "0.1.0"
 //! ```
 //!
-//! You can also use `CreateProcessW` directly with no warning, but this doesn't
-//! respect Rust's naming recommendations.
+//! This crate doesn't follow Rust's naming recommendations and disable warnings
+//! about `non_snake_case`. If you want to stay consistent with other imported
+//! crates, use the following:
+//!
+//! ```toml
+//! [dependencies]
+//! create_process_w = { version = "0.1.0", package = "CreateProcessW" }
+//! ```
 //!
 //! # Create a command
 //!
@@ -49,7 +55,7 @@
 //! ```no_run
 //! use CreateProcessW::Command;
 //!
-//! let command = Command::new("cargo.exe check")
+//! let command = Command::new("cargo.exe clippy -- -D warnings")
 //!     .inherit_handles(false)
 //!     .current_directory(r"C:\Users\<user>\repos\<repo_name>");
 //! ```
