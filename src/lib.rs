@@ -27,7 +27,7 @@
 //!
 //! The only difference will be that the `Child` instance will use the PID of
 //! the command instead of the PID of `cmd.exe`. This is important because
-//! calling `.terminate()` in the code above does not work as it kills the PID
+//! calling `.kill()` in the code above does not work as it kills the PID
 //! of `cmd.exe` instead of the actual command that has been ran.
 //!
 //! # Usage
@@ -70,31 +70,31 @@
 //! std::thread::Duration(std::time::Duration::from_secs(2));
 //!
 //! child.kill().expect("cannot kill process");
-//  let status = child.wait().expect("cannot wait process");
-//
-//  if status.success() {
-//      println!("Success!");
-//  } else {
-//      println!("Process exited with status {}", status.code());
-//  }
-//  ```
-//
-//  The [`status`] function spawn a child process, wait for it to finish and
-//  return its [`ExitStatus`].
-//
-//  ```ignore
-//  use create_process_w::Command;
-//
-//  let status = Command::new("notepad.exe")
-//      .status()
-//      .expect("notepad failed to start");
-//
-//  if status.success() {
-//      println!("Success!")
-//  } else {
-//      println!("Process exited with status {}", status.code())
-//  }
-//  ```
+//! let status = child.wait().expect("cannot wait process");
+//!
+//! if status.success() {
+//!     println!("Success!");
+//! } else {
+//!     println!("Process exited with status {}", status.code());
+//! }
+//! ```
+//!
+//! The [`status`] function spawn a child process, wait for it to finish and
+//! return its [`ExitStatus`].
+//!
+//! ```ignore
+//! use create_process_w::Command;
+//!
+//! let status = Command::new("notepad.exe")
+//!     .status()
+//!     .expect("notepad failed to start");
+//!
+//! if status.success() {
+//!     println!("Success!")
+//! } else {
+//!     println!("Process exited with status {}", status.code())
+//! }
+//! ```
 use std::ffi::OsString;
 use std::path::PathBuf;
 
