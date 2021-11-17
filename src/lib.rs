@@ -3,6 +3,11 @@
 // See https://github.com/rust-lang/rust/issues/45127
 #![allow(non_snake_case)]
 #![deny(missing_docs)]
+// intra-doc links need to be explicit in the README.tpl because they're not
+// parsed correctly when generating the README via cargo-readme.
+// See https://github.com/livioribeiro/cargo-readme/issues/55
+
+// The generation of the README need to be automated when a PR is pushed on main.
 
 //! This crate provide an API similar to [`std::process`][std-process] to create
 //! and handle processes on Windows using the Win32 API through the
