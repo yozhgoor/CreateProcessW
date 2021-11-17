@@ -13,10 +13,6 @@
 //! and handle processes on Windows using the Win32 API through the
 //! [windows-rs][windows-rs] crate (see [this example][create-processes-example]).
 //!
-//! [std-process]: https://doc.rust-lang.org/std/process/index.html
-//! [windows-rs]: https://github.com/microsoft/windows-rs
-//! [create-processes-example]: https://docs.microsoft.com/en-us/windows/win32/procthread/creating-processes
-//!
 //! It's main difference with `std::process::Command` is that it allows running
 //! a command string instead of having to pass the command executable and the
 //! arguments separately.
@@ -100,6 +96,10 @@
 //!     println!("Process exited with status {}", status.code())
 //! }
 //! ```
+//!
+//! //! [std-process]: https://doc.rust-lang.org/std/process/index.html
+//! [windows-rs]: https://github.com/microsoft/windows-rs
+//! [create-processes-example]: https://docs.microsoft.com/en-us/windows/win32/procthread/creating-processes
 use std::ffi::OsString;
 use std::path::PathBuf;
 
@@ -215,7 +215,7 @@ impl Command {
     ///     .status()
     ///     .expect("failed to execute process");
     ///
-    /// println!("process finished with: {}", status);
+    /// println!("process finished with: {}", status.code());
     ///
     /// assert!(status.success());
     /// ```
@@ -243,9 +243,9 @@ use windows::Win32::System::WindowsProgramming::INFINITE;
 ///
 /// # Warnings
 ///
-/// Calling `wait` is necessary for the OS to release resources. A process that
-/// terminated but has not been waited on is still around as a "zombie". Leaving
-/// too many zombies around may exhaust global resources.
+/// Calling [`wait`][Child::wait] is necessary for the OS to release resources.
+/// A process that terminated but has not been waited on is still around as a
+/// "zombie". Leaving too many zombies around may exhaust global resources.
 ///
 /// This library does *not* automatically wait on child processes (not even if
 /// the `Child` is dropped), it is up to the application developer to do so. As
@@ -271,6 +271,13 @@ pub struct Child {
 }
 
 impl Child {
+    #[doc(hidden)]
+    /// Create a new process and initialize it's memory. If it cannot be
+    /// created, an [`CreateFailed`][Error::CreateFailed] error is returned.
+    ///
+    /// Equivalent to [`CreateProcessW`][create-process-w]
+    ///
+    /// [create-process-w]: https://docs.microsoft.com/en-us/windows/win32/api/processthreadsapi/nf-processthreadsapi-createprocessw
     fn new(
         command: &OsStr,
         inherit_handles: bool,
@@ -323,7 +330,7 @@ impl Child {
         }
     }
     /// Forces the child process to exit. If the child has already exited, a
-    /// [\`KillFailed\`] error is returned.
+    /// [`KillFailed`][Error::KillFailed] error is returned.
     ///
     /// This function is used to unconditionally cause a process to exit and
     /// stops execution of all threads within the process and requests
@@ -350,6 +357,8 @@ impl Child {
     ///     println!("notepad didn't start");
     /// }
     /// ```
+    ///
+    /// [terminate-process]: https://docs.microsoft.com/en-us/windows/win32/api/processthreadsapi/nf-processthreadsapi-terminateprocess
     pub fn kill(&self) -> Result<()> {
         unsafe {
             let res = TerminateProcess(self.process_information.hProcess, 0);
@@ -366,10 +375,11 @@ impl Child {
     /// exited with and closing handles. This function will continue to have the
     /// same return value after it has been called at least once.
     ///
+    /// If the function fail, it return a [`GetExitCodeFailed`][Error::GetExitCodeFailed] error.
+    ///
     /// This is equivalent to calling the
     /// [`WaitForSingleObject][wait-for-single-object] and the
-    /// [`CloseHandle`][close-handle] functions. The exit code is returned by
-    /// the [`GetExitCodeProcess`][get-exit-code] function.
+    /// [`CloseHandle`][close-handle] functions.
     ///
     /// # Examples
     ///
@@ -388,8 +398,6 @@ impl Child {
     ///
     /// [wait-for-single-object]: https://docs.microsoft.com/en-us/windows/win32/api/synchapi/nf-synchapi-waitforsingleobject
     /// [close-handle]: https://docs.microsoft.com/en-us/windows/win32/api/handleapi/nf-handleapi-closehandle
-    /// [get-exit-code]: https://docs.microsoft.com/en-us/windows/win32/api/processthreadsapi/nf-processthreadsapi-getexitcodeprocess
-    ///
     pub fn wait(&self) -> Result<ExitStatus> {
         unsafe {
             let mut exit_code: u32 = 0;
@@ -408,12 +416,12 @@ impl Child {
                     Err(Error::GetExitCodeFailed(GetLastError().0))
                 }
             } else {
-                Err(Error::GetExitCodeFailed(GetLastError().0))
+                Err(Error::WaitFailed(GetLastError().0))
             }
         }
     }
 
-    /// Attemps to collect the exit status of the child if it has already
+    /// Attempts to collect the exit status of the child if it has already
     /// exited.
     ///
     /// This function will not block the calling thread and will only check to
@@ -427,7 +435,8 @@ impl Child {
     /// function.
     ///
     /// Note that this function will call [`CloseHandle`][close-handle] if the
-    /// child has exited.
+    /// child has exited. If the function fail, a
+    /// [`GetExitCodeProcess`][Error::GetExitCodeFailed] error is returned.
     ///
     /// # Examples
     ///
@@ -518,9 +527,9 @@ unsafe fn close_handles(process_info: &PROCESS_INFORMATION) {
 /// Describe the result of a process after it has terminated.
 ///
 /// This struct is used to represent the exit status or other termination of a
-/// child process. Child processes are created via the `Command` struct and
-/// their exit status is exposed through the [\`status\`] method, or the [\`wait\`]
-/// method of a [`Child`] process.
+/// child process. Child processes are created via the [`Command`] struct and
+/// their exit status is exposed through the [`status`][Command::status]
+/// method, or the [`wait`][Child::wait] method of a [`Child`] process.
 pub struct ExitStatus(u32);
 
 impl ExitStatus {
@@ -542,32 +551,36 @@ use thiserror::Error;
 
 type Result<T> = std::result::Result<T, Error>;
 
-/// Returns an error code when an error occurs.
+/// Error type of a failed function on a child process.
 ///
-/// The error code linked to the Error are the result of the
+/// Note that this error type is not the same of a non-zero exit status. The
+/// error code linked to the error type is the result of the
 /// [`GetLastError`][get-last-error] function. The variants give some context
-/// to the user.
-///
-/// If you want more information about an error code, you can look at the
-/// [`System Error Codes`][system-error-codes].
+/// to the user but if you want more information about an error code, you can
+/// look at the [`System Error Codes`][system-error-codes].
 ///
 /// [get-last-error]: https://docs.microsoft.com/en-us/windows/win32/api/errhandlingapi/nf-errhandlingapi-getlasterror
 /// [system-error-codes]: https://docs.microsoft.com/en-us/windows/win32/debug/system-error-codes
 #[derive(Error, Debug)]
 pub enum Error {
-    /// An error occurred when creating a new child process.
+    /// An error occurred when calling [`CreateProcessW`](https://docs.microsoft.com/en-us/windows/win32/api/processthreadsapi/nf-processthreadsapi-createprocessw)
     #[error("cannot create process (code {:#x})", 0)]
     CreationFailed(u32),
 
-    /// An error occurred when trying to get the exit code of the child process.
+    /// An error occurred when calling [`WaitForSingleObject`](https://docs.microsoft.com/en-us/windows/win32/api/synchapi/nf-synchapi-waitforsingleobject).
+    #[error("cannot wait process (code {:#x})", 0)]
+    WaitFailed(u32),
+
+    /// An error occurred when calling [`TerminateProcess`](https://docs.microsoft.com/en-us/windows/win32/api/processthreadsapi/nf-processthreadsapi-terminateprocess)
+    #[error("cannot kill process (code {:#x})", 0)]
+    KillFailed(u32),
+
+    /// An error occurred when calling [`GetExitCodeProcess`](https://docs.microsoft.com/en-us/windows/win32/api/processthreadsapi/nf-processthreadsapi-getexitcodeprocess)
     #[error("cannot get exit status (code {:#x})", 0)]
     GetExitCodeFailed(u32),
 
-    /// An error occurred when trying to get the ID of the child process.
+    /// An error occurred when calling
+    /// [`GetProcessId`](https://docs.microsoft.com/en-us/windows/win32/api/processthreadsapi/nf-processthreadsapi-getprocessid).
     #[error("cannot get process id (code {:#x})", 0)]
     GetProcessIdFailed(u32),
-
-    /// An error occurred when trying to terminate the child process.
-    #[error("cannot kill process (code {:#x})", 0)]
-    KillFailed(u32),
 }
