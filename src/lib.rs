@@ -41,6 +41,60 @@
 //!
 //! You can also use `CreateProcessW` directly, but this doesn't respect Rust's
 //! naming recommendations.
+//!
+//! # Create a command
+//!
+//! The [`Command`] struct is used to configure and spawn processes:
+//!
+//! ```ignore
+//! use create_process_w::Command;
+//!
+//! let command = Command::new("cargo.exe check")
+//!     .inherit_handle(false)
+//!     .current_directory(r"C:\Users\<user>\repos\<repo_name>");
+//! ```
+//!
+//! ## Spawning a process
+//!
+//! The [`spawn`] function spawn the process and return a [`Child`] that
+//! represents the spawned child process.
+//!
+//! ```ignore
+//! use create_process_w::Command;
+//!
+//! let child = Command::new("notepad.exe")
+//!     .spawn()
+//!     .expect("notepad failed to start");
+//!
+//!
+//! std::thread::Duration(std::time::Duration::from_secs(2));
+//!
+//! child.kill().expect("cannot kill process");
+//  let status = child.wait().expect("cannot wait process");
+//
+//  if status.success() {
+//      println!("Success!");
+//  } else {
+//      println!("Process exited with status {}", status.code());
+//  }
+//  ```
+//
+//  The [`status`] function spawn a child process, wait for it to finish and
+//  return its [`ExitStatus`].
+//
+//  ```ignore
+//  use create_process_w::Command;
+//
+//  let status = Command::new("notepad.exe")
+//      .status()
+//      .expect("notepad failed to start");
+//
+//  if status.success() {
+//      println!("Success!")
+//  } else {
+//      println!("Process exited with status {}", status.code())
+//  }
+//  ```
 use std::ffi::OsString;
 use std::path::PathBuf;
 
@@ -54,7 +108,7 @@ pub struct Command {
 }
 
 impl Command {
-    /// Create a new `Command`, with the following default configuration:
+    /// Create a new [`Command`], with the following default configuration:
     ///
     /// * Inherit handles of the calling process.
     /// * Inherit the current drive and directory of the calling process.
