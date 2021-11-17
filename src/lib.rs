@@ -19,10 +19,10 @@
 //! This is equivalent of running:
 //!
 //! ```no_run
-//! std::process::Command("cmd.exe")
+//! std::process::Command::new("cmd.exe")
 //!     .arg("/c")
-//!     .arg(any_command_string)
-//!     .spawn()
+//!     .arg("any_command_string")
+//!     .spawn().expect("cannot spawn command");
 //! ```
 //!
 //! The only difference will be that the `Child` instance will use the PID of
@@ -47,10 +47,10 @@
 //! The [`Command`] struct is used to configure and spawn processes:
 //!
 //! ```no_run
-//! use create_process_w::Command;
+//! use CreateProcessW::Command;
 //!
 //! let command = Command::new("cargo.exe check")
-//!     .inherit_handle(false)
+//!     .inherit_handles(false)
 //!     .current_directory(r"C:\Users\<user>\repos\<repo_name>");
 //! ```
 //!
@@ -60,14 +60,14 @@
 //! [`Child`] that represents the spawned child process.
 //!
 //! ```no_run
-//! use create_process_w::Command;
+//! use CreateProcessW::Command;
 //!
 //! let child = Command::new("notepad.exe")
 //!     .spawn()
 //!     .expect("notepad failed to start");
 //!
 //!
-//! std::thread::Duration(std::time::Duration::from_secs(2));
+//! std::thread::sleep(std::time::Duration::from_secs(2));
 //!
 //! child.kill().expect("cannot kill process");
 //! let status = child.wait().expect("cannot wait process");
@@ -83,7 +83,7 @@
 //! it to finish and returns its [`ExitStatus`].
 //!
 //! ```no_run
-//! use create_process_w::Command;
+//! use CreateProcessW::Command;
 //!
 //! let status = Command::new("notepad.exe")
 //!     .status()
@@ -123,7 +123,7 @@ impl Command {
     /// # Examples
     ///
     /// ```no_run
-    /// use create_process_w::Command;
+    /// use CreateProcessW::Command;
     ///
     /// Command::new("notepad.exe")
     ///     .spawn()
@@ -166,7 +166,7 @@ impl Command {
     /// # Examples
     ///
     /// ```no_run
-    /// use create_process_w::Command;
+    /// use CreateProcessW::Command;
     ///
     /// let check = Command::new("cargo.exe check")
     ///     .current_directory(r"C:\Users\<user>\repos\<repo_name>")
@@ -188,7 +188,7 @@ impl Command {
     /// # Examples
     ///
     /// ```no_run
-    /// use create_process_w::Command;
+    /// use CreateProcessW::Command;
     ///
     /// Command::new("notepad.exe")
     ///     .spawn()
@@ -208,9 +208,9 @@ impl Command {
     /// # Examples
     ///
     /// ```no_run
-    /// use create_process_w::Command;
+    /// use CreateProcessW::Command;
     ///
-    /// Command::new("notepad.exe")
+    /// let status = Command::new("notepad.exe")
     ///     .status()
     ///     .expect("failed to execute process");
     ///
@@ -254,7 +254,7 @@ use windows::Win32::System::WindowsProgramming::INFINITE;
 /// # Examples
 ///
 /// ```no_run
-/// use create_process_w::Command;
+/// use CreateProcessW::Command;
 ///
 /// let mut child = Command::new("notepad.exe")
 ///     .spawn()
@@ -346,7 +346,7 @@ impl Child {
     /// # Examples
     ///
     /// ```no_run
-    /// use create_process_w::Command;
+    /// use CreateProcessW::Command;
     ///
     /// let mut command = Command::new("notepad.exe");
     ///
@@ -384,7 +384,7 @@ impl Child {
     /// # Examples
     ///
     /// ```no_run
-    /// use create_process_w::Command;
+    /// use CreateProcessW::Command;
     ///
     /// let mut command = Command::new("notepad.exe");
     ///
@@ -441,16 +441,16 @@ impl Child {
     /// # Examples
     ///
     /// ```no_run
-    /// use create_process_w::Command;
+    /// use CreateProcessW::Command;
     ///
     /// let mut child = Command::new("notepad.exe").spawn().unwrap();
     ///
     /// match child.try_wait() {
-    ///     Ok(Some(status)) => println!("exited with: {}", status),
+    ///     Ok(Some(status)) => println!("exited with: {}", status.code()),
     ///     Ok(None) => {
     ///         println!("status not ready yet, let's really wait");
-    ///         let res = child.wait();
-    ///         println!("result: {:?}", res);
+    ///         let status = child.wait().expect("cannot wait process");
+    ///         println!("waited: {}", status.code());
     ///     }
     ///     Err(e) => println!("error attempting to wait: {}", e),
     /// }
@@ -488,23 +488,22 @@ impl Child {
     /// # Examples
     ///
     /// ```no_run
-    /// use create_process_w::Command;
+    /// use CreateProcessW::Command;
     ///
     /// let mut command = Command::new("notepad.exe");
     ///
     /// if let Ok(child) = command.spawn() {
     ///     match child.id() {
-    ///         Ok(id) => println!("Child's ID is {}", child.id());
-    ///         Err(err) => println!("Cannot get child's ID");
-    ///     } else {
-    ///         println!("notepad didn't start");
+    ///         Ok(id) => println!("Child's ID is {}", id),
+    ///         Err(err) => println!("Cannot get child's ID"),
     ///     }
+    /// } else {
+    ///     println!("notepad didn't start");
     /// }
     /// ```
     ///
     /// [get-process-id]: https://docs.microsoft.com/en-us/windows/win32/api/processthreadsapi/nf-processthreadsapi-getprocessid
     pub fn id(&self) -> Result<u32> {
-        // TODO: test this function on Windows
         unsafe {
             let process_id = GetProcessId(self.process_information.hProcess);
 
