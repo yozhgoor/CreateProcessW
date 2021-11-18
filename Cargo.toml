@@ -2,6 +2,15 @@
 name = "CreateProcessW"
 version = "0.1.0"
 edition = "2021"
+license = "MIT OR Apache-2.0"
+description = "Create and handle processes on Windows using the Win32 API"
+repository = "https://github.com/yozhgoor/CreateProcessW"
+homepage = "https://github.com/yozhgoor/CreateProcessW"
+documentation = "https://docs.rs/CreateProcessW"
+readme = "README.md"
+keywords = ["winapi", "process", "command", "CreateProcessExW"]
+categories = ["api-bindings", "os::windows-apis"]
+include = ["src/**/*.rs", "README.md", "LICENSE.Apache-2.0", "LICENSE.MIT"]
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
