@@ -104,14 +104,12 @@
 //! [std-process]: https://doc.rust-lang.org/std/process/index.html
 //! [windows-rs]: https://github.com/microsoft/windows-rs
 //! [create-processes-example]: https://docs.microsoft.com/en-us/windows/win32/procthread/creating-processes
-use std::ffi::OsString;
-use std::ffi::{c_void, OsStr};
+use std::ffi::{c_void, OsStr, OsString};
+use std::fmt;
 use std::mem::size_of;
-use std::path::Path;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use thiserror::Error;
-use windows::Win32::Foundation::CloseHandle;
-use windows::Win32::Foundation::{GetLastError, PWSTR, STATUS_PENDING};
+use windows::Win32::Foundation::{CloseHandle, GetLastError, PWSTR, STATUS_PENDING};
 use windows::Win32::Security::SECURITY_ATTRIBUTES;
 use windows::Win32::System::Threading::{
     GetExitCodeProcess, TerminateProcess, WaitForSingleObject, PROCESS_CREATION_FLAGS,
@@ -535,8 +533,6 @@ impl ExitStatus {
         self.0
     }
 }
-
-use std::fmt;
 
 impl fmt::Display for ExitStatus {
     /// Formats the value using the given formatter.
