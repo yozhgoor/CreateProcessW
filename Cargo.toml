@@ -8,7 +8,7 @@ repository = "https://github.com/yozhgoor/CreateProcessW"
 homepage = "https://github.com/yozhgoor/CreateProcessW"
 documentation = "https://docs.rs/CreateProcessW"
 readme = "README.md"
-keywords = "windows"
+keywords = ["windows", "processes", "command", "library"]
 categories = ["api-bindings", "development-tool::ffi", "os::windows-apis"]
 include = ["src/**/*.rs", "README.md", "LICENSE.Apache-2.0", "LICENSE.MIT"]
 
