@@ -183,7 +183,7 @@ impl Command {
     /// [`CreateProcessW`][create-process-w-parameters] function.
     ///
     /// [create-process-w-parameters]: https://docs.microsoft.com/en-us/windows/win32/api/processthreadsapi/nf-processthreadsapi-createprocessw#parameters
-    pub fn current_directory(&mut self, dir: impl Into<PathBuf>) -> &mut Self {
+    pub fn current_dir(&mut self, dir: impl Into<PathBuf>) -> &mut Self {
         self.current_directory = Some(dir.into());
         self
     }
@@ -275,13 +275,12 @@ pub struct Child {
 }
 
 impl Child {
-    #[doc(hidden)]
-    /// Create a new process and initialize it's memory. If it cannot be
-    /// created, an [`CreateFailed`][Error::CreateFailed] error is returned.
-    ///
-    /// Equivalent to [`CreateProcessW`][create-process-w]
-    ///
-    /// [create-process-w]: https://docs.microsoft.com/en-us/windows/win32/api/processthreadsapi/nf-processthreadsapi-createprocessw
+    // Create a new process and initialize it's memory. If it cannot be
+    // created, an [`CreateFailed`][Error::CreateFailed] error is returned.
+    //
+    // Equivalent to [`CreateProcessW`][create-process-w]
+    //
+    // [create-process-w]: https://docs.microsoft.com/en-us/windows/win32/api/processthreadsapi/nf-processthreadsapi-createprocessw
     fn new(
         command: &OsStr,
         inherit_handles: bool,
@@ -333,6 +332,7 @@ impl Child {
             Err(Error::CreationFailed(unsafe { GetLastError().0 }))
         }
     }
+
     /// Forces the child process to exit. If the child has already exited, a
     /// [`KillFailed`][Error::KillFailed] error is returned.
     ///
@@ -508,18 +508,18 @@ impl Child {
 
 use windows::Win32::Foundation::CloseHandle;
 
-// This function isn't really necessary, but avoid code repetition
 unsafe fn close_handles(process_info: &PROCESS_INFORMATION) {
     CloseHandle(process_info.hProcess);
     CloseHandle(process_info.hThread);
 }
 
-/// Describe the result of a process after it has terminated.
+/// Describes the result of a process after it has terminated.
 ///
 /// This struct is used to represent the exit status or other termination of a
 /// child process. Child processes are created via the [`Command`] struct and
 /// their exit status is exposed through the [`status`][Command::status]
 /// method, or the [`wait`][Child::wait] method of a [`Child`] process.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct ExitStatus(u32);
 
 impl ExitStatus {
@@ -534,6 +534,15 @@ impl ExitStatus {
     /// Returns the exit code of the process
     pub fn code(&self) -> u32 {
         self.0
+    }
+}
+
+use std::fmt;
+
+impl fmt::Display for ExitStatus {
+    /// Formats the value using the given formatter.
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        self.0.fmt(f)
     }
 }
 
