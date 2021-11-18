@@ -31,9 +31,8 @@ Add the following to your `Cargo.toml`:
 CreateProcessW = "0.1.0"
 ```
 
-This crate doesn't follow Rust's naming recommendations and disable warnings
-about `non_snake_case`. If you want to stay consistent with other imported
-crates, use the following:
+This crate doesn't follow Rust's naming recommendations. If you want to stay
+consistent with other imported crates, use the following:
 
 ```toml
 [dependencies]
@@ -48,8 +47,8 @@ The [`Command`] struct is used to configure and spawn processes:
 use CreateProcessW::Command;
 
 let command = Command::new("cargo.exe clippy -- -D warnings")
-    .inherit_handles(false)
-    .current_directory(r"C:\Users\<user>\repos\<repo_name>");
+    .inherit_handles(true)
+    .current_dir(r"C:\Users\<user>\repos\<repo_name>");
 ```
 
 ### Spawning a process
