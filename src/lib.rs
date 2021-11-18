@@ -56,7 +56,7 @@
 //!
 //! let command = Command::new("cargo.exe clippy -- -D warnings")
 //!     .inherit_handles(false)
-//!     .current_directory(r"C:\Users\<user>\repos\<repo_name>");
+//!     .current_dir(r"C:\Users\<user>\repos\<repo_name>");
 //! ```
 //!
 //! ## Spawning a process
@@ -174,7 +174,7 @@ impl Command {
     /// use CreateProcessW::Command;
     ///
     /// let check = Command::new("cargo.exe check")
-    ///     .current_directory(r"C:\Users\<user>\repos\<repo_name>")
+    ///     .current_dir(r"C:\Users\<user>\repos\<repo_name>")
     ///     .status()
     ///     .expect("cargo check command failed");
     /// ```
