@@ -509,15 +509,8 @@ impl Child {
     /// ```
     ///
     /// [get-process-id]: https://docs.microsoft.com/en-us/windows/win32/api/processthreadsapi/nf-processthreadsapi-getprocessid
-    pub fn id(&self) -> Result<u32> {
-        unsafe {
-            let process_id = GetProcessId(self.process_information.hProcess);
-
-            match process_id {
-                0 => Err(Error::GetProcessIdFailed(GetLastError().0)),
-                _ => Ok(process_id),
-            }
-        }
+    pub fn id(&self) -> u32 {
+        self.process_information.dwProcessId
     }
 }
 
