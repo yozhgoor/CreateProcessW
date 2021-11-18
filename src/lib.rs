@@ -487,9 +487,7 @@ impl Child {
         }
     }
 
-    /// Returns process identifier associated with this child.
-    ///
-    /// Equivalent to the [`GetProcessId`][get-process-id] function.
+    /// Returns the process identifier associated with this child.
     ///
     /// # Examples
     ///
@@ -499,16 +497,11 @@ impl Child {
     /// let mut command = Command::new("notepad.exe");
     ///
     /// if let Ok(child) = command.spawn() {
-    ///     match child.id() {
-    ///         Ok(id) => println!("Child's ID is {}", id),
-    ///         Err(err) => println!("Cannot get child's ID"),
-    ///     }
+    ///     println!("Child's ID is {}", child.id());
     /// } else {
     ///     println!("notepad didn't start");
     /// }
     /// ```
-    ///
-    /// [get-process-id]: https://docs.microsoft.com/en-us/windows/win32/api/processthreadsapi/nf-processthreadsapi-getprocessid
     pub fn id(&self) -> u32 {
         self.process_information.dwProcessId
     }
