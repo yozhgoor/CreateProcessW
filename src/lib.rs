@@ -55,7 +55,7 @@
 //! use CreateProcessW::Command;
 //!
 //! let command = Command::new("cargo.exe clippy -- -D warnings")
-//!     .inherit_handles(false)
+//!     .inherit_handles(true)
 //!     .current_dir(r"C:\Users\<user>\repos\<repo_name>");
 //! ```
 //!
@@ -142,7 +142,7 @@ impl Command {
     pub fn new(command: impl Into<OsString>) -> Self {
         Self {
             command: command.into(),
-            inherit_handles: true,
+            inherit_handles: false,
             current_directory: None,
         }
     }
