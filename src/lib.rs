@@ -39,9 +39,8 @@
 //! CreateProcessW = "0.1.0"
 //! ```
 //!
-//! This crate doesn't follow Rust's naming recommendations and disable warnings
-//! about `non_snake_case`. If you want to stay consistent with other imported
-//! crates, use the following:
+//! This crate doesn't follow Rust's naming recommendations. If you want to stay
+//! consistent with other imported crates, use the following:
 //!
 //! ```toml
 //! [dependencies]
@@ -235,7 +234,7 @@ use std::path::Path;
 use windows::Win32::Foundation::{GetLastError, PWSTR, STATUS_PENDING};
 use windows::Win32::Security::SECURITY_ATTRIBUTES;
 use windows::Win32::System::Threading::{
-    GetExitCodeProcess, GetProcessId, TerminateProcess, WaitForSingleObject,
+    GetExitCodeProcess, TerminateProcess, WaitForSingleObject,
     PROCESS_CREATION_FLAGS, PROCESS_INFORMATION, STARTUPINFOW, WAIT_OBJECT_0,
 };
 use windows::Win32::System::WindowsProgramming::INFINITE;
