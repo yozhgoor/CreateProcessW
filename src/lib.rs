@@ -234,8 +234,8 @@ use std::path::Path;
 use windows::Win32::Foundation::{GetLastError, PWSTR, STATUS_PENDING};
 use windows::Win32::Security::SECURITY_ATTRIBUTES;
 use windows::Win32::System::Threading::{
-    GetExitCodeProcess, TerminateProcess, WaitForSingleObject,
-    PROCESS_CREATION_FLAGS, PROCESS_INFORMATION, STARTUPINFOW, WAIT_OBJECT_0,
+    GetExitCodeProcess, TerminateProcess, WaitForSingleObject, PROCESS_CREATION_FLAGS,
+    PROCESS_INFORMATION, STARTUPINFOW, WAIT_OBJECT_0,
 };
 use windows::Win32::System::WindowsProgramming::INFINITE;
 
