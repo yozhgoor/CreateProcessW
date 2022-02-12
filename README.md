@@ -37,7 +37,7 @@ the command instead of the PID of `cmd.exe`. This is important because
 calling `.kill()` in the code above does not work as it kills the PID
 of `cmd.exe` instead of the actual command that has been ran.
 
-# Usage
+## Usage
 
 Add the following to your `Cargo.toml`:
 
@@ -54,7 +54,7 @@ consistent with other imported crates, use the following:
 create_process_w = { version = "0.1.0", package = "CreateProcessW" }
 ```
 
-# Create a command
+## Create a command
 
 The [`Command`] struct is used to configure and spawn processes:
 
@@ -66,7 +66,7 @@ let command = Command::new("cargo.exe clippy -- -D warnings")
     .current_dir(r"C:\Users\<user>\repos\<repo_name>");
 ```
 
-## Spawning a process
+### Spawning a process
 
 The [`spawn`][Command::spawn] function spawns the process and returns a
 [`Child`] that represents the spawned child process.
