@@ -1,5 +1,23 @@
 # CreateProcessW
 
+[![actions status][actions-badge]][actions-url]
+[![crate version][crates-version-badge]][crates-url]
+[![documentation][docs-badge]][docs-url]
+[![dependencies status][deps-badge]][deps-url]
+![licenses][licenses-badge]
+
+[actions-badge]: https://github.com/yozhgoor/CreateProcessW/workflows/main/badge.svg
+[actions-url]: https://github.com/yozhgoor/CreateProcessW/actions
+[crates-version-badge]: https://img.shields.io/crates/v/CreateProcessW
+[crates-url]: https://crates.io/crates/CreateProcessW
+[docs-badge]: https://docs.rs/CreateProcessW/badge.svg
+[docs-url]: https://docs.rs/CreateProcessW
+[deps-badge]: https://deps.rs/crate/CreateProcessW/0.1.2/status.svg
+[deps-url]: https://deps.rs/crate/CreateProcessW
+[licenses-badge]: https://img.shields.io/crates/l/CreateProcessW
+
+<!-- cargo-rdme start -->
+
 This crate provides an API similar to [`std::process`][std-process] to create
 and handle processes on Windows using the Win32 API through the
 [windows-rs][windows-rs] crate (see [this example][create-processes-example]).
@@ -97,8 +115,4 @@ if status.success() {
 [windows-rs]: https://github.com/microsoft/windows-rs
 [create-processes-example]: https://docs.microsoft.com/en-us/windows/win32/procthread/creating-processes
 
-[`Command`]: https://docs.rs/CreateProcessW/latest/CreateProcessW/struct.Command.html
-[`Child`]: https://docs.rs/CreateProcessW/latest/CreateProcessW/struct.Child.html
-[`ExitStatus`]: https://docs.rs/CreateProcessW/latest/CreateProcessW/struct.ExitStatus.html
-[Command::spawn]: https://docs.rs/CreateProcessW/latest/CreateProcessW/struct.Command.html#method.spawn
-[Command::status]: https://docs.rs/CreateProcessW/latest/CreateProcessW/struct.Command.html#method.status
+<!-- cargo-rdme end -->
