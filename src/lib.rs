@@ -3,12 +3,8 @@
 // crate name. See https://github.com/rust-lang/rust/issues/45127
 #![allow(non_snake_case)]
 #![deny(missing_docs)]
-// intra-doc links need to be explicit in the README.tpl because they're not
-// parsed correctly when generating the README via cargo-readme.
-// See https://github.com/livioribeiro/cargo-readme/issues/55
-// The generation of the README need to be automated when a PR is pushed on main.
 
-//! This crate provides an API similar to [`std::process`][std-process] to create
+//! This crate provides an API similar to [`std::process`](::std::process) to create
 //! and handle processes on Windows using the Win32 API through the
 //! [windows-rs][windows-rs] crate (see [this example][create-processes-example]).
 //!
@@ -49,7 +45,7 @@
 //!
 //! # Create a command
 //!
-//! The [`Command`] struct is used to configure and spawn processes:
+//! The [`Command`](crate::Command) struct is used to configure and spawn processes:
 //!
 //! ```no_run
 //! use CreateProcessW::Command;
@@ -61,8 +57,8 @@
 //!
 //! ## Spawning a process
 //!
-//! The [`spawn`][Command::spawn] function spawns the process and returns a
-//! [`Child`] that represents the spawned child process.
+//! The [`spawn`](crate::Command) function spawns the process and returns a
+//! [`Child`](crate::Child) that represents the spawned child process.
 //!
 //! ```no_run
 //! use CreateProcessW::Command;
@@ -84,8 +80,8 @@
 //! }
 //! ```
 //!
-//! The [`status`][Command::status] function spawns a child process, waits for
-//! it to finish and returns its [`ExitStatus`].
+//! The [`status`](crate::Command) function spawns a child process, waits for
+//! it to finish and returns its [`ExitStatus`](crate::ExitStatus).
 //!
 //! ```no_run
 //! use CreateProcessW::Command;
@@ -101,7 +97,6 @@
 //! }
 //! ```
 //!
-//! [std-process]: https://doc.rust-lang.org/std/process/index.html
 //! [windows-rs]: https://github.com/microsoft/windows-rs
 //! [create-processes-example]: https://docs.microsoft.com/en-us/windows/win32/procthread/creating-processes
 
