@@ -71,7 +71,7 @@ let command = Command::new("cargo.exe clippy -- -D warnings")
 
 ## Spawning a process
 
-The [`spawn`](crate::Command::spawn) function spawns the process and returns a
+The [`spawn`](https://docs.rs/CreateProcessW/latest/CreateProcessW/struct.Command.html) function spawns the process and returns a
 [`Child`](https://docs.rs/CreateProcessW/latest/CreateProcessW/struct.Child.html) that represents the spawned child process.
 
 ```rust
@@ -94,7 +94,7 @@ if status.success() {
 }
 ```
 
-The [`status`](crate::Command::status) function spawns a child process, waits for
+The [`status`](https://docs.rs/CreateProcessW/latest/CreateProcessW/struct.Command.html) function spawns a child process, waits for
 it to finish and returns its [`ExitStatus`](https://docs.rs/CreateProcessW/latest/CreateProcessW/struct.ExitStatus.html).
 
 ```rust
