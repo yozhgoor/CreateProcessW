@@ -3,6 +3,7 @@
 [![actions status][actions-badge]][actions-url]
 [![crate version][crates-version-badge]][crates-url]
 [![documentation][docs-badge]][docs-url]
+[![dependencies status][deps-badge]][deps-url]
 ![licenses][licenses-badge]
 
 [actions-badge]: https://github.com/yozhgoor/CreateProcessW/workflows/main/badge.svg
@@ -11,6 +12,8 @@
 [crates-url]: https://crates.io/crates/CreateProcessW
 [docs-badge]: https://docs.rs/CreateProcessW/badge.svg
 [docs-url]: https://docs.rs/CreateProcessW
+[deps-badge]: https://deps.rs/crate/CreateProcessW/0.1.2/status.svg
+[deps-url]: https://deps.rs/crate/CreateProcessW
 [licenses-badge]: https://img.shields.io/crates/l/CreateProcessW
 
 <!-- cargo-rdme start -->
