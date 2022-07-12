@@ -105,7 +105,8 @@ use std::fmt;
 use std::mem::size_of;
 use std::path::{Path, PathBuf};
 use thiserror::Error;
-use windows::Win32::Foundation::{CloseHandle, GetLastError, PWSTR, STATUS_PENDING};
+use windows::core::PWSTR;
+use windows::Win32::Foundation::{CloseHandle, GetLastError, STATUS_PENDING};
 use windows::Win32::Security::SECURITY_ATTRIBUTES;
 use windows::Win32::System::Threading::{
     GetExitCodeProcess, TerminateProcess, WaitForSingleObject, PROCESS_CREATION_FLAGS,
@@ -461,11 +462,11 @@ impl Child {
     ///
     pub fn try_wait(&self) -> Result<Option<ExitStatus>> {
         unsafe {
-            let mut exit_code: u32 = 0;
+            let mut exit_code: i32 = 0;
 
             let res = GetExitCodeProcess(
                 self.process_information.hProcess,
-                &mut exit_code as *mut u32,
+                &mut exit_code as *mut i32,
             );
 
             if res.as_bool() {
