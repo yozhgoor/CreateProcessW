@@ -294,12 +294,14 @@ impl Child {
                 let directory = directory.as_os_str();
                 windows::Win32::System::Threading::CreateProcessW(
                     PCWSTR::default(),
-                    PWSTR::default(),
+                    // TODO: convert to PWSTR
+                    command,
                     std::ptr::null() as *const SECURITY_ATTRIBUTES,
                     std::ptr::null() as *const SECURITY_ATTRIBUTES,
                     inherit_handles,
                     process_creation_flags,
                     std::ptr::null() as *const c_void,
+                    // TODO: convert to IntoParam<'_, PCWSTR>
                     directory,
                     &startup_info,
                     &mut process_info as *mut PROCESS_INFORMATION,
@@ -307,7 +309,8 @@ impl Child {
             } else {
                 windows::Win32::System::Threading::CreateProcessW(
                     PCWSTR::default(),
-                    PWSTR::default(),
+                    // TODO: convert to PWSTR
+                    command,
                     std::ptr::null() as *const SECURITY_ATTRIBUTES,
                     std::ptr::null() as *const SECURITY_ATTRIBUTES,
                     inherit_handles,
