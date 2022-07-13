@@ -294,7 +294,7 @@ impl Child {
                 let directory = directory.as_os_str();
                 windows::Win32::System::Threading::CreateProcessW(
                     PCWSTR::default(),
-                    command,
+                    PWSTR::default(),
                     std::ptr::null() as *const SECURITY_ATTRIBUTES,
                     std::ptr::null() as *const SECURITY_ATTRIBUTES,
                     inherit_handles,
@@ -307,7 +307,7 @@ impl Child {
             } else {
                 windows::Win32::System::Threading::CreateProcessW(
                     PCWSTR::default(),
-                    command,
+                    PWSTR::default(),
                     std::ptr::null() as *const SECURITY_ATTRIBUTES,
                     std::ptr::null() as *const SECURITY_ATTRIBUTES,
                     inherit_handles,
