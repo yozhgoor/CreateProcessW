@@ -462,15 +462,15 @@ impl Child {
     ///
     pub fn try_wait(&self) -> Result<Option<ExitStatus>> {
         unsafe {
-            let mut exit_code: i32 = 0;
+            let mut exit_code: u32 = 0;
 
             let res = GetExitCodeProcess(
                 self.process_information.hProcess,
-                &mut exit_code as *mut i32,
+                &mut exit_code as *mut u32,
             );
 
             if res.as_bool() {
-                if exit_code as u32 == STATUS_PENDING.0 {
+                if exit_code as i32 == STATUS_PENDING.0 {
                     Ok(None)
                 } else {
                     close_handles(&self.process_information);
