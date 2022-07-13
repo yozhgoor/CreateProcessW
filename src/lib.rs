@@ -105,7 +105,7 @@ use std::fmt;
 use std::mem::size_of;
 use std::path::{Path, PathBuf};
 use thiserror::Error;
-use windows::core::PWSTR;
+use windows::core::{PCWSTR, PWSTR};
 use windows::Win32::Foundation::{CloseHandle, GetLastError, STATUS_PENDING};
 use windows::Win32::Security::SECURITY_ATTRIBUTES;
 use windows::Win32::System::Threading::{
@@ -293,7 +293,7 @@ impl Child {
             if let Some(directory) = current_directory {
                 let directory = directory.as_os_str();
                 windows::Win32::System::Threading::CreateProcessW(
-                    PWSTR::default(),
+                    PCWSTR::default(),
                     command,
                     std::ptr::null() as *const SECURITY_ATTRIBUTES,
                     std::ptr::null() as *const SECURITY_ATTRIBUTES,
@@ -306,14 +306,14 @@ impl Child {
                 )
             } else {
                 windows::Win32::System::Threading::CreateProcessW(
-                    PWSTR::default(),
+                    PCWSTR::default(),
                     command,
                     std::ptr::null() as *const SECURITY_ATTRIBUTES,
                     std::ptr::null() as *const SECURITY_ATTRIBUTES,
                     inherit_handles,
                     process_creation_flags,
                     std::ptr::null() as *const c_void,
-                    PWSTR::default(),
+                    PCWSTR::default(),
                     &startup_info,
                     &mut process_info as *mut PROCESS_INFORMATION,
                 )
@@ -470,7 +470,7 @@ impl Child {
             );
 
             if res.as_bool() {
-                if exit_code == STATUS_PENDING.0 {
+                if exit_code as u32 == STATUS_PENDING.0 {
                     Ok(None)
                 } else {
                     close_handles(&self.process_information);
