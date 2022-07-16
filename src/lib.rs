@@ -105,7 +105,8 @@ use std::fmt;
 use std::mem::size_of;
 use std::path::{Path, PathBuf};
 use thiserror::Error;
-use windows::Win32::Foundation::{CloseHandle, GetLastError, PWSTR, STATUS_PENDING};
+use windows::core::{PCWSTR, PWSTR};
+use windows::Win32::Foundation::{CloseHandle, GetLastError, STATUS_PENDING};
 use windows::Win32::Security::SECURITY_ATTRIBUTES;
 use windows::Win32::System::Threading::{
     GetExitCodeProcess, TerminateProcess, WaitForSingleObject, PROCESS_CREATION_FLAGS,
@@ -292,27 +293,30 @@ impl Child {
             if let Some(directory) = current_directory {
                 let directory = directory.as_os_str();
                 windows::Win32::System::Threading::CreateProcessW(
-                    PWSTR::default(),
+                    PCWSTR::default(),
+                    // TODO: convert to PWSTR
                     command,
                     std::ptr::null() as *const SECURITY_ATTRIBUTES,
                     std::ptr::null() as *const SECURITY_ATTRIBUTES,
                     inherit_handles,
                     process_creation_flags,
                     std::ptr::null() as *const c_void,
+                    // TODO: convert to IntoParam<'_, PCWSTR>
                     directory,
                     &startup_info,
                     &mut process_info as *mut PROCESS_INFORMATION,
                 )
             } else {
                 windows::Win32::System::Threading::CreateProcessW(
-                    PWSTR::default(),
+                    PCWSTR::default(),
+                    // TODO: convert to PWSTR
                     command,
                     std::ptr::null() as *const SECURITY_ATTRIBUTES,
                     std::ptr::null() as *const SECURITY_ATTRIBUTES,
                     inherit_handles,
                     process_creation_flags,
                     std::ptr::null() as *const c_void,
-                    PWSTR::default(),
+                    PCWSTR::default(),
                     &startup_info,
                     &mut process_info as *mut PROCESS_INFORMATION,
                 )
@@ -469,7 +473,7 @@ impl Child {
             );
 
             if res.as_bool() {
-                if exit_code == STATUS_PENDING.0 {
+                if exit_code as i32 == STATUS_PENDING.0 {
                     Ok(None)
                 } else {
                     close_handles(&self.process_information);
