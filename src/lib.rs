@@ -103,7 +103,6 @@
 use std::ffi::{c_void, OsStr, OsString};
 use std::fmt;
 use std::mem::size_of;
-use std::os::windows::ffi::OsStrExt;
 use std::path::{Path, PathBuf};
 use thiserror::Error;
 use windows::core::PCWSTR;
@@ -295,7 +294,7 @@ impl Child {
                 let directory = directory.as_os_str();
                 windows::Win32::System::Threading::CreateProcessW(
                     PCWSTR::null(),
-                    command.encode_wide().into(),
+                    command,
                     Some(std::ptr::null() as *const SECURITY_ATTRIBUTES),
                     Some(std::ptr::null() as *const SECURITY_ATTRIBUTES),
                     inherit_handles,
