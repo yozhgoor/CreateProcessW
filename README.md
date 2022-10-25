@@ -12,7 +12,7 @@
 [crates-url]: https://crates.io/crates/CreateProcessW
 [docs-badge]: https://docs.rs/CreateProcessW/badge.svg
 [docs-url]: https://docs.rs/CreateProcessW
-[deps-badge]: https://deps.rs/crate/CreateProcessW/0.1.2/status.svg
+[deps-badge]: https://deps.rs/crate/CreateProcessW/0.1.3/status.svg
 [deps-url]: https://deps.rs/crate/CreateProcessW
 [licenses-badge]: https://img.shields.io/crates/l/CreateProcessW
 
