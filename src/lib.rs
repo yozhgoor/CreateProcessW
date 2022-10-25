@@ -295,7 +295,7 @@ impl Child {
                 let directory = directory.as_os_str();
                 windows::Win32::System::Threading::CreateProcessW(
                     PCWSTR::null(),
-                    command.encode_wide(),
+                    command.encode_wide().into(),
                     Some(std::ptr::null() as *const SECURITY_ATTRIBUTES),
                     Some(std::ptr::null() as *const SECURITY_ATTRIBUTES),
                     inherit_handles,
