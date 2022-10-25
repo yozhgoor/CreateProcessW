@@ -293,27 +293,27 @@ impl Child {
             if let Some(directory) = current_directory {
                 let directory = directory.as_os_str();
                 windows::Win32::System::Threading::CreateProcessW(
-                    // lpapplicationame: Into<PCWSTR>,
-                    // lpcommandline: PWSTR,
+                    PCWSTR::null(),
+                    command,
                     Some(std::ptr::null() as *const SECURITY_ATTRIBUTES),
                     Some(std::ptr::null() as *const SECURITY_ATTRIBUTES),
                     inherit_handles,
                     process_creation_flags,
                     Some(std::ptr::null() as *const c_void),
-                    // lpcurrentdirectory: Into<PCWSTR>,
+                    directory,
                     &startup_info,
                     &mut process_info as *mut PROCESS_INFORMATION,
                 )
             } else {
                 windows::Win32::System::Threading::CreateProcessW(
-                    // lpapplication: Into<PCWSTR>,
-                    // lpcommandline: PWSTR,
+                    PCWSTR::null(),
+                    command,
                     Some(std::ptr::null() as *const SECURITY_ATTRIBUTES),
                     Some(std::ptr::null() as *const SECURITY_ATTRIBUTES),
                     inherit_handles,
                     process_creation_flags,
                     Some(std::ptr::null() as *const c_void),
-                    // lpcurrentdirectory: Into<PCWSTR>,
+                    PCWSTR::null(),
                     &startup_info,
                     &mut process_info as *mut PROCESS_INFORMATION,
                 )
