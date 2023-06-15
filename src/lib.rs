@@ -109,7 +109,7 @@ use std::{
 };
 use thiserror::Error;
 use windows::{
-    core::PWSTR,
+    core::{PCWSTR, PWSTR},
     Win32::{
         Foundation::{CloseHandle, GetLastError, STATUS_PENDING, WAIT_OBJECT_0},
         System::Threading::{
@@ -295,25 +295,22 @@ impl Child {
         let process_creation_flags = PROCESS_CREATION_FLAGS(0);
 
         let current_directory_ptr = current_directory
-            .map(|path| OsString::from(path).encode_wide().collect::<Vec<_>>())
+            .map(|path| path.as_os_str().encode_wide().collect::<Vec<_>>())
             .map(|wide_path| wide_path.as_ptr())
-            .unwrap_or(std::ptr::null_mut() as PWSTR);
+            .unwrap_or(std::ptr::null_mut());
 
-        let command = OsString::from(command)
-            .encode_wide()
-            .chain(Some(0))
-            .collect::<Vec<_>>();
+        let mut command = command.encode_wide().collect::<Vec<_>>();
 
         let res = unsafe {
             CreateProcessW(
-                std::ptr::null_mut(),
-                PWSTR(command.as_ptr() as *mut _),
+                PCWSTR::null(),
+                PWSTR(command.as_mut_ptr()),
                 None,
                 None,
                 inherit_handles,
                 process_creation_flags,
                 None,
-                PWSTR(current_directory_ptr),
+                PCWSTR(current_directory_ptr),
                 &startup_info,
                 &mut process_info,
             )
@@ -469,7 +466,7 @@ impl Child {
             );
 
             if res.as_bool() {
-                if exit_code == STATUS_PENDING.0 {
+                if exit_code as i32 == STATUS_PENDING.0 {
                     Ok(None)
                 } else {
                     close_handles(&self.process_information);
