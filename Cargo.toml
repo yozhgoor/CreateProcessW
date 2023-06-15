@@ -18,7 +18,7 @@ include = ["src/**/*.rs", "README.md", "LICENSE.Apache-2.0", "LICENSE.MIT"]
 thiserror = "1.0.40"
 
 [dependencies.windows]
-version = "0.28.0"
+version = "0.48.0"
 features = [
     "std",
     "Win32_Foundation",
