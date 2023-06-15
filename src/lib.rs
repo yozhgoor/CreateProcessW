@@ -100,18 +100,24 @@
 //! [windows-rs]: https://github.com/microsoft/windows-rs
 //! [create-processes-example]: https://docs.microsoft.com/en-us/windows/win32/procthread/creating-processes
 
-use std::ffi::{c_void, OsStr, OsString};
-use std::fmt;
-use std::mem::size_of;
-use std::path::{Path, PathBuf};
-use thiserror::Error;
-use windows::Win32::Foundation::{CloseHandle, GetLastError, PWSTR, STATUS_PENDING};
-use windows::Win32::Security::SECURITY_ATTRIBUTES;
-use windows::Win32::System::Threading::{
-    GetExitCodeProcess, TerminateProcess, WaitForSingleObject, PROCESS_CREATION_FLAGS,
-    PROCESS_INFORMATION, STARTUPINFOW, WAIT_OBJECT_0,
+use std::{
+    ffi::{c_void, OsStr, OsString},
+    fmt,
+    mem::size_of,
+    path::{Path, PathBuf},
 };
-use windows::Win32::System::WindowsProgramming::INFINITE;
+use thiserror::Error;
+use windows::{
+    core::PWSTR,
+    Win32::{
+        Foundation::{CloseHandle, GetLastError, STATUS_PENDING, WAIT_OBJECT_0},
+        Security::SECURITY_ATTRIBUTES,
+        System::Threading::{
+            GetExitCodeProcess, TerminateProcess, WaitForSingleObject, INFINITE,
+            PROCESS_CREATION_FLAGS, PROCESS_INFORMATION, STARTUPINFOW,
+        },
+    },
+};
 
 /// A process builder, providing control over how a new process should be
 /// spawned.
