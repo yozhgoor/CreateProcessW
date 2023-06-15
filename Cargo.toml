@@ -20,7 +20,6 @@ thiserror = "1.0.40"
 [dependencies.windows]
 version = "0.48.0"
 features = [
-    "std",
     "Win32_Foundation",
     "Win32_Security",
     "Win32_System_Threading",
