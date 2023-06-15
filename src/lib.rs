@@ -101,9 +101,10 @@
 //! [create-processes-example]: https://docs.microsoft.com/en-us/windows/win32/procthread/creating-processes
 
 use std::{
-    ffi::{c_void, OsStr, OsString},
+    ffi::{OsStr, OsString},
     fmt,
     mem::size_of,
+    os::windows::ffi::OsStrExt,
     path::{Path, PathBuf},
 };
 use thiserror::Error;
@@ -111,9 +112,8 @@ use windows::{
     core::PWSTR,
     Win32::{
         Foundation::{CloseHandle, GetLastError, STATUS_PENDING, WAIT_OBJECT_0},
-        Security::SECURITY_ATTRIBUTES,
         System::Threading::{
-            GetExitCodeProcess, TerminateProcess, WaitForSingleObject, INFINITE,
+            CreateProcessW, GetExitCodeProcess, TerminateProcess, WaitForSingleObject, INFINITE,
             PROCESS_CREATION_FLAGS, PROCESS_INFORMATION, STARTUPINFOW,
         },
     },
@@ -294,35 +294,29 @@ impl Child {
 
         let process_creation_flags = PROCESS_CREATION_FLAGS(0);
 
+        let current_directory_ptr = current_directory
+            .map(|path| OsString::from(path).encode_wide().collect::<Vec<_>>())
+            .map(|wide_path| wide_path.as_ptr())
+            .unwrap_or(std::ptr::null_mut() as PWSTR);
+
+        let command = OsString::from(command)
+            .encode_wide()
+            .chain(Some(0))
+            .collect::<Vec<_>>();
+
         let res = unsafe {
-            if let Some(directory) = current_directory {
-                let directory = directory.as_os_str();
-                windows::Win32::System::Threading::CreateProcessW(
-                    PWSTR::default(),
-                    command,
-                    std::ptr::null() as *const SECURITY_ATTRIBUTES,
-                    std::ptr::null() as *const SECURITY_ATTRIBUTES,
-                    inherit_handles,
-                    process_creation_flags,
-                    std::ptr::null() as *const c_void,
-                    directory,
-                    &startup_info,
-                    &mut process_info as *mut PROCESS_INFORMATION,
-                )
-            } else {
-                windows::Win32::System::Threading::CreateProcessW(
-                    PWSTR::default(),
-                    command,
-                    std::ptr::null() as *const SECURITY_ATTRIBUTES,
-                    std::ptr::null() as *const SECURITY_ATTRIBUTES,
-                    inherit_handles,
-                    process_creation_flags,
-                    std::ptr::null() as *const c_void,
-                    PWSTR::default(),
-                    &startup_info,
-                    &mut process_info as *mut PROCESS_INFORMATION,
-                )
-            }
+            CreateProcessW(
+                std::ptr::null_mut(),
+                PWSTR(command.as_ptr() as *mut _),
+                None,
+                None,
+                inherit_handles,
+                process_creation_flags,
+                None,
+                PWSTR(current_directory_ptr),
+                &startup_info,
+                &mut process_info,
+            )
         };
 
         if res.as_bool() {
