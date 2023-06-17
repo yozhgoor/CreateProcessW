@@ -100,18 +100,24 @@
 //! [windows-rs]: https://github.com/microsoft/windows-rs
 //! [create-processes-example]: https://docs.microsoft.com/en-us/windows/win32/procthread/creating-processes
 
-use std::ffi::{c_void, OsStr, OsString};
-use std::fmt;
-use std::mem::size_of;
-use std::path::{Path, PathBuf};
-use thiserror::Error;
-use windows::Win32::Foundation::{CloseHandle, GetLastError, PWSTR, STATUS_PENDING};
-use windows::Win32::Security::SECURITY_ATTRIBUTES;
-use windows::Win32::System::Threading::{
-    GetExitCodeProcess, TerminateProcess, WaitForSingleObject, PROCESS_CREATION_FLAGS,
-    PROCESS_INFORMATION, STARTUPINFOW, WAIT_OBJECT_0,
+use std::{
+    ffi::{OsStr, OsString},
+    fmt,
+    mem::size_of,
+    os::windows::ffi::OsStrExt,
+    path::{Path, PathBuf},
 };
-use windows::Win32::System::WindowsProgramming::INFINITE;
+use thiserror::Error;
+use windows::{
+    core::{PCWSTR, PWSTR},
+    Win32::{
+        Foundation::{CloseHandle, GetLastError, STATUS_PENDING, WAIT_OBJECT_0},
+        System::Threading::{
+            CreateProcessW, GetExitCodeProcess, TerminateProcess, WaitForSingleObject, INFINITE,
+            PROCESS_CREATION_FLAGS, PROCESS_INFORMATION, STARTUPINFOW,
+        },
+    },
+};
 
 /// A process builder, providing control over how a new process should be
 /// spawned.
@@ -288,35 +294,26 @@ impl Child {
 
         let process_creation_flags = PROCESS_CREATION_FLAGS(0);
 
+        let current_directory_ptr = current_directory
+            .map(|path| path.as_os_str().encode_wide().collect::<Vec<_>>())
+            .map(|wide_path| wide_path.as_ptr())
+            .unwrap_or(std::ptr::null_mut());
+
+        let mut command = command.encode_wide().collect::<Vec<_>>();
+
         let res = unsafe {
-            if let Some(directory) = current_directory {
-                let directory = directory.as_os_str();
-                windows::Win32::System::Threading::CreateProcessW(
-                    PWSTR::default(),
-                    command,
-                    std::ptr::null() as *const SECURITY_ATTRIBUTES,
-                    std::ptr::null() as *const SECURITY_ATTRIBUTES,
-                    inherit_handles,
-                    process_creation_flags,
-                    std::ptr::null() as *const c_void,
-                    directory,
-                    &startup_info,
-                    &mut process_info as *mut PROCESS_INFORMATION,
-                )
-            } else {
-                windows::Win32::System::Threading::CreateProcessW(
-                    PWSTR::default(),
-                    command,
-                    std::ptr::null() as *const SECURITY_ATTRIBUTES,
-                    std::ptr::null() as *const SECURITY_ATTRIBUTES,
-                    inherit_handles,
-                    process_creation_flags,
-                    std::ptr::null() as *const c_void,
-                    PWSTR::default(),
-                    &startup_info,
-                    &mut process_info as *mut PROCESS_INFORMATION,
-                )
-            }
+            CreateProcessW(
+                PCWSTR::null(),
+                PWSTR(command.as_mut_ptr()),
+                None,
+                None,
+                inherit_handles,
+                process_creation_flags,
+                None,
+                PCWSTR(current_directory_ptr),
+                &startup_info,
+                &mut process_info,
+            )
         };
 
         if res.as_bool() {
@@ -469,7 +466,7 @@ impl Child {
             );
 
             if res.as_bool() {
-                if exit_code == STATUS_PENDING.0 {
+                if exit_code as i32 == STATUS_PENDING.0 {
                     Ok(None)
                 } else {
                     close_handles(&self.process_information);
