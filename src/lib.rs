@@ -294,12 +294,13 @@ impl Child {
 
         let process_creation_flags = PROCESS_CREATION_FLAGS(0);
 
+        // Convert command to a wide string with a null terminator.
+        let command_wide = command.encode_wide().chain(Some(0)).collect::<Vec<_>>();
+
         let current_directory_ptr = current_directory
-            .map(|path| path.as_os_str().encode_wide().collect::<Vec<_>>())
+            .map(|path| path.as_os_str().encode_wide().chain(Some(0)).collect())
             .map(|wide_path| wide_path.as_ptr())
             .unwrap_or(std::ptr::null_mut());
-
-        let mut command_wide: Vec<u16> = command.encode_wide().collect();
 
         let res = unsafe {
             CreateProcessW(
