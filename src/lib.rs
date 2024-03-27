@@ -498,8 +498,8 @@ impl Child {
 }
 
 unsafe fn close_handles(process_info: &PROCESS_INFORMATION) {
-    CloseHandle(process_info.hProcess);
-    CloseHandle(process_info.hThread);
+    let _ = CloseHandle(process_info.hProcess);
+    let _ = CloseHandle(process_info.hThread);
 }
 
 /// Describes the result of a process after it has terminated.
