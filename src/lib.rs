@@ -287,10 +287,10 @@ impl Child {
         inherit_handles: bool,
         current_directory: Option<&Path>,
     ) -> Result<Self> {
-        let mut startup_info = STARTUPINFOW::default();
-        let mut process_info = PROCESS_INFORMATION::default();
+        let mut startup_information = STARTUPINFOW::default();
+        let mut process_information = PROCESS_INFORMATION::default();
 
-        startup_info.cb = size_of::<STARTUPINFOW>() as u32;
+        startup_information.cb = size_of::<STARTUPINFOW>() as u32;
 
         let process_creation_flags = PROCESS_CREATION_FLAGS(0);
 
@@ -298,28 +298,33 @@ impl Child {
         let command_wide = command.encode_wide().chain(Some(0)).collect::<Vec<_>>();
 
         let current_directory_ptr = current_directory
-            .map(|path| path.as_os_str().encode_wide().chain(Some(0)).collect())
+            .map(|path| {
+                path.as_os_str()
+                    .encode_wide()
+                    .chain(Some(0))
+                    .collect::<Vec<_>>()
+            })
             .map(|wide_path| wide_path.as_ptr())
             .unwrap_or(std::ptr::null_mut());
 
         let res = unsafe {
             CreateProcessW(
                 PCWSTR::null(),
-                PWSTR(command_wide.as_ptr()),
+                PWSTR(command_wide.as_mut_ptr()),
                 None,
                 None,
                 inherit_handles,
                 process_creation_flags,
                 None,
                 PCWSTR(current_directory_ptr),
-                &startup_info,
-                &mut process_info,
+                &startup_information,
+                &mut process_information,
             )
         };
 
         match res {
             Ok(()) => Ok(Self {
-                process_information: process_info,
+                process_information,
             }),
             Err(_) => Err(Error::CreationFailed(unsafe { GetLastError().0 })),
         }
