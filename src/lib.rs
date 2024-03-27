@@ -295,7 +295,7 @@ impl Child {
         let process_creation_flags = PROCESS_CREATION_FLAGS(0);
 
         // Convert command to a wide string with a null terminator.
-        let command_wide = command.encode_wide().chain(Some(0)).collect::<Vec<_>>();
+        let mut command_wide = command.encode_wide().chain(Some(0)).collect::<Vec<_>>();
 
         let current_directory_ptr = current_directory
             .map(|path| {
