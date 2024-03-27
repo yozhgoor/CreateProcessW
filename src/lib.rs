@@ -287,41 +287,46 @@ impl Child {
         inherit_handles: bool,
         current_directory: Option<&Path>,
     ) -> Result<Self> {
-        let mut startup_info = STARTUPINFOW::default();
-        let mut process_info = PROCESS_INFORMATION::default();
+        let mut startup_information = STARTUPINFOW::default();
+        let mut process_information = PROCESS_INFORMATION::default();
 
-        startup_info.cb = size_of::<STARTUPINFOW>() as u32;
+        startup_information.cb = size_of::<STARTUPINFOW>() as u32;
 
         let process_creation_flags = PROCESS_CREATION_FLAGS(0);
 
+        // Convert command to a wide string with a null terminator.
+        let mut command_wide = command.encode_wide().chain(Some(0)).collect::<Vec<_>>();
+
         let current_directory_ptr = current_directory
-            .map(|path| path.as_os_str().encode_wide().collect::<Vec<_>>())
+            .map(|path| {
+                path.as_os_str()
+                    .encode_wide()
+                    .chain(Some(0))
+                    .collect::<Vec<_>>()
+            })
             .map(|wide_path| wide_path.as_ptr())
             .unwrap_or(std::ptr::null_mut());
-
-        let mut command = command.encode_wide().collect::<Vec<_>>();
 
         let res = unsafe {
             CreateProcessW(
                 PCWSTR::null(),
-                PWSTR(command.as_mut_ptr()),
+                PWSTR(command_wide.as_mut_ptr()),
                 None,
                 None,
                 inherit_handles,
                 process_creation_flags,
                 None,
                 PCWSTR(current_directory_ptr),
-                &startup_info,
-                &mut process_info,
+                &startup_information,
+                &mut process_information,
             )
         };
 
-        if res.as_bool() {
-            Ok(Self {
-                process_information: process_info,
-            })
-        } else {
-            Err(Error::CreationFailed(unsafe { GetLastError().0 }))
+        match res {
+            Ok(()) => Ok(Self {
+                process_information,
+            }),
+            Err(_) => Err(Error::CreationFailed(unsafe { GetLastError().0 })),
         }
     }
 
@@ -357,12 +362,10 @@ impl Child {
     /// [terminate-process]: https://docs.microsoft.com/en-us/windows/win32/api/processthreadsapi/nf-processthreadsapi-terminateprocess
     pub fn kill(&self) -> Result<()> {
         unsafe {
-            let res = TerminateProcess(self.process_information.hProcess, 0);
-
-            if res.as_bool() {
-                Ok(())
-            } else {
+            if TerminateProcess(self.process_information.hProcess, 0).is_err() {
                 Err(Error::KillFailed(GetLastError().0))
+            } else {
+                Ok(())
             }
         }
     }
@@ -405,7 +408,7 @@ impl Child {
                     self.process_information.hProcess,
                     &mut exit_code as *mut u32,
                 )
-                .as_bool()
+                .is_ok()
                 {
                     close_handles(&self.process_information);
                     Ok(ExitStatus(exit_code))
@@ -457,23 +460,19 @@ impl Child {
     /// [get-exit-code]: https://docs.microsoft.com/en-us/windows/win32/api/processthreadsapi/nf-processthreadsapi-getexitcodeprocess
     ///
     pub fn try_wait(&self) -> Result<Option<ExitStatus>> {
-        unsafe {
-            let mut exit_code: u32 = 0;
+        let mut exit_code: u32 = 0;
 
-            let res = GetExitCodeProcess(
+        unsafe {
+            match GetExitCodeProcess(
                 self.process_information.hProcess,
                 &mut exit_code as *mut u32,
-            );
-
-            if res.as_bool() {
-                if exit_code as i32 == STATUS_PENDING.0 {
-                    Ok(None)
-                } else {
+            ) {
+                Ok(()) if exit_code as i32 == STATUS_PENDING.0 => Ok(None),
+                Ok(()) => {
                     close_handles(&self.process_information);
                     Ok(Some(ExitStatus(exit_code)))
                 }
-            } else {
-                Err(Error::GetExitCodeFailed(GetLastError().0))
+                Err(_) => Err(Error::GetExitCodeFailed(GetLastError().0)),
             }
         }
     }
@@ -499,8 +498,8 @@ impl Child {
 }
 
 unsafe fn close_handles(process_info: &PROCESS_INFORMATION) {
-    CloseHandle(process_info.hProcess);
-    CloseHandle(process_info.hThread);
+    let _ = CloseHandle(process_info.hProcess);
+    let _ = CloseHandle(process_info.hThread);
 }
 
 /// Describes the result of a process after it has terminated.
