@@ -124,8 +124,6 @@ extern "system" {
         lpStartupInfo: *const STARTUPINFOW,
         lpProcessInformation: *mut PROCESS_INFORMATION,
     ) -> BOOL;
-    // https://learn.microsoft.com/en-us/windows/console/freeconsole
-    pub(crate) fn FreeConsole() -> BOOL;
     // https://learn.microsoft.com/en-us/windows/win32/api/processthreadsapi/nf-processthreadsapi-getexitcodeprocess
     pub(crate) fn GetExitCodeProcess(hProcess: HANDLE, lpExitCode: PDWORD) -> BOOL;
     // https://learn.microsoft.com/en-us/windows/win32/api/errhandlingapi/nf-errhandlingapi-getlasterror
