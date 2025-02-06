@@ -33,10 +33,11 @@ type WORD = u16;
 
 // https://learn.microsoft.com/en-us/windows/win32/api/processthreadsapi/ns-processthreadsapi-process_information
 #[repr(C)]
+#[derive(Debug)]
 pub(crate) struct PROCESS_INFORMATION {
     pub hProcess: HANDLE,
     pub hThread: HANDLE,
-    dwProcessId: DWORD,
+    pub dwProcessId: DWORD,
     dwThreadId: DWORD,
 }
 
@@ -62,7 +63,7 @@ pub(crate) struct SECURITY_ATTRIBUTES {
 // https://learn.microsoft.com/en-us/windows/win32/api/processthreadsapi/ns-processthreadsapi-startupinfow
 #[repr(C)]
 pub(crate) struct STARTUPINFOW {
-    cb: DWORD,
+    pub cb: DWORD,
     lpReserved: PWSTR,
     lpDesktop: PWSTR,
     lpTitle: PWSTR,
@@ -134,4 +135,3 @@ extern "system" {
     // https://learn.microsoft.com/en-us/windows/win32/api/synchapi/nf-synchapi-waitforsingleobject
     pub(crate) fn WaitForSingleObject(hHandle: HANDLE, dwMilliseconds: DWORD) -> DWORD;
 }
-
