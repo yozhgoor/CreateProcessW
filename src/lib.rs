@@ -303,7 +303,7 @@ impl Child {
             .unwrap_or(std::ptr::null_mut());
 
         // Convert command to a wide string with a null terminator.
-        let command = command.encode_wide().collect::<Vec<_>>();
+        let command = command.encode_wide().chain(once(0)).collect::<Vec<_>>();
 
         let res = unsafe {
             CreateProcessW(
