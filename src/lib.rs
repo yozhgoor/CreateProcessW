@@ -108,15 +108,13 @@ use std::{
     path::{Path, PathBuf},
 };
 use thiserror::Error;
-use windows::{
-    core::{PCWSTR, PWSTR},
-    Win32::{
-        Foundation::{CloseHandle, GetLastError, STATUS_PENDING, WAIT_OBJECT_0},
-        System::Threading::{
-            CreateProcessW, GetExitCodeProcess, TerminateProcess, WaitForSingleObject, INFINITE,
-            PROCESS_CREATION_FLAGS, PROCESS_INFORMATION, STARTUPINFOW,
-        },
-    },
+
+mod binding;
+
+use crate::binding::{
+    CloseHandle, CreateProcessW, GetExitCodeProcess, GetLastError, TerminateProcess,
+    WaitForSingleObject, INFINITE, PCWSTR, PROCESS_INFORMATION, STARTUPINFOW, STATUS_PENDING,
+    WAIT_OBJECT_0,
 };
 
 /// A process builder, providing control over how a new process should be
