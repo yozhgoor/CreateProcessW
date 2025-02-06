@@ -103,18 +103,18 @@ mod binding;
 use std::{
     ffi::{OsStr, OsString},
     fmt,
+    io::Error,
     iter::once,
     mem::size_of,
     os::windows::ffi::OsStrExt,
     path::{Path, PathBuf},
     ptr::{null, null_mut},
 };
-use thiserror::Error;
 
 use crate::binding::{
-    CloseHandle, CreateProcessW, GetExitCodeProcess, GetLastError, TerminateProcess,
-    WaitForSingleObject, BOOL, DWORD, INFINITE, PCWSTR, PDWORD, PROCESS_INFORMATION, PWSTR,
-    STARTUPINFOW, STATUS_PENDING, UINT, WAIT_OBJECT_0,
+    CloseHandle, CreateProcessW, GetExitCodeProcess, TerminateProcess, WaitForSingleObject, BOOL,
+    DWORD, INFINITE, PCWSTR, PDWORD, PROCESS_INFORMATION, PWSTR, STARTUPINFOW, STATUS_PENDING,
+    UINT, WAIT_OBJECT_0,
 };
 
 /// A process builder, providing control over how a new process should be
@@ -209,7 +209,7 @@ impl Command {
     ///     .spawn()
     ///     .expect("notepad failed to start");
     /// ```
-    pub fn spawn(&mut self) -> Result<Child> {
+    pub fn spawn(&mut self) -> Result<Child, Error> {
         Child::new(
             &self.command,
             self.inherit_handles,
@@ -233,7 +233,7 @@ impl Command {
     ///
     /// assert!(status.success());
     /// ```
-    pub fn status(&mut self) -> Result<ExitStatus> {
+    pub fn status(&mut self) -> Result<ExitStatus, Error> {
         self.spawn()?.wait()
     }
 }
@@ -284,7 +284,7 @@ impl Child {
         command: &OsStr,
         inherit_handles: bool,
         current_directory: Option<&Path>,
-    ) -> Result<Self> {
+    ) -> Result<Self, Error> {
         let mut startup_information = STARTUPINFOW::default();
         let mut process_information = PROCESS_INFORMATION::default();
 
@@ -323,7 +323,7 @@ impl Child {
                 process_information,
             })
         } else {
-            Err(Error::CreationFailed(unsafe { GetLastError() }))
+            Err(Error::last_os_error())
         }
     }
 
@@ -357,13 +357,13 @@ impl Child {
     /// ```
     ///
     /// [terminate-process]: https://docs.microsoft.com/en-us/windows/win32/api/processthreadsapi/nf-processthreadsapi-terminateprocess
-    pub fn kill(&self) -> Result<()> {
+    pub fn kill(&self) -> Result<(), Error> {
         let res = unsafe { TerminateProcess(self.process_information.hProcess, 0 as UINT) };
 
         if res != 0 {
             Ok(())
         } else {
-            Err(Error::KillFailed(unsafe { GetLastError() }))
+            Err(Error::last_os_error())
         }
     }
 
@@ -395,7 +395,7 @@ impl Child {
     ///
     /// [wait-for-single-object]: https://docs.microsoft.com/en-us/windows/win32/api/synchapi/nf-synchapi-waitforsingleobject
     /// [close-handle]: https://docs.microsoft.com/en-us/windows/win32/api/handleapi/nf-handleapi-closehandle
-    pub fn wait(&self) -> Result<ExitStatus> {
+    pub fn wait(&self) -> Result<ExitStatus, Error> {
         let mut exit_code = 0;
 
         let wait = unsafe {
@@ -415,10 +415,10 @@ impl Child {
 
                 Ok(ExitStatus(exit_code))
             } else {
-                Err(Error::GetExitCodeFailed(unsafe { GetLastError() }))
+                Err(Error::last_os_error())
             }
         } else {
-            Err(Error::WaitFailed(unsafe { GetLastError() }))
+            Err(Error::last_os_error())
         }
     }
 
@@ -460,7 +460,7 @@ impl Child {
     /// [close-handle]: https://docs.microsoft.com/en-us/windows/win32/api/handleapi/nf-handleapi-closehandle
     /// [get-exit-code]: https://docs.microsoft.com/en-us/windows/win32/api/processthreadsapi/nf-processthreadsapi-getexitcodeprocess
     ///
-    pub fn try_wait(&self) -> Result<Option<ExitStatus>> {
+    pub fn try_wait(&self) -> Result<Option<ExitStatus>, Error> {
         let mut exit_code = 0;
 
         let res = unsafe {
@@ -479,7 +479,7 @@ impl Child {
                 Ok(Some(ExitStatus(exit_code)))
             }
         } else {
-            Err(Error::GetExitCodeFailed(unsafe { GetLastError() }))
+            Err(Error::last_os_error())
         }
     }
 
@@ -531,60 +531,5 @@ impl fmt::Display for ExitStatus {
     /// Formats the value using the given formatter.
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         self.0.fmt(f)
-    }
-}
-
-type Result<T> = std::result::Result<T, Error>;
-
-/// Error type of a failed function on a child process.
-///
-/// Note that this error type is not the same of a non-zero exit status. The
-/// error code linked to the error type is the result of the
-/// [`GetLastError`][get-last-error] function. The variants give some context
-/// to the user but if you want more information about an error code, you can
-/// look at the [`System Error Codes`][system-error-codes].
-///
-/// [get-last-error]: https://docs.microsoft.com/en-us/windows/win32/api/errhandlingapi/nf-errhandlingapi-getlasterror
-/// [system-error-codes]: https://docs.microsoft.com/en-us/windows/win32/debug/system-error-codes
-#[derive(Error, Debug)]
-pub enum Error {
-    /// An error occurred when calling [`CreateProcessW`](https://docs.microsoft.com/en-us/windows/win32/api/processthreadsapi/nf-processthreadsapi-createprocessw)
-    #[error("cannot create process (code {:#x})", 0)]
-    CreationFailed(u32),
-
-    /// An error occurred when calling [`WaitForSingleObject`](https://docs.microsoft.com/en-us/windows/win32/api/synchapi/nf-synchapi-waitforsingleobject).
-    #[error("cannot wait process (code {:#x})", 0)]
-    WaitFailed(u32),
-
-    /// An error occurred when calling [`TerminateProcess`](https://docs.microsoft.com/en-us/windows/win32/api/processthreadsapi/nf-processthreadsapi-terminateprocess)
-    #[error("cannot kill process (code {:#x})", 0)]
-    KillFailed(u32),
-
-    /// An error occurred when calling [`GetExitCodeProcess`](https://docs.microsoft.com/en-us/windows/win32/api/processthreadsapi/nf-processthreadsapi-getexitcodeprocess)
-    #[error("cannot get exit status (code {:#x})", 0)]
-    GetExitCodeFailed(u32),
-
-    /// An error occurred when calling
-    /// [`GetProcessId`](https://docs.microsoft.com/en-us/windows/win32/api/processthreadsapi/nf-processthreadsapi-getprocessid).
-    #[error("cannot get process id (code {:#x})", 0)]
-    GetProcessIdFailed(u32),
-}
-
-impl Error {
-    /// Return the system error code of the Error
-    ///
-    /// This error code isn't formatted like the code in the error string.
-    ///
-    /// To more information about this [codes][system-error-codes.]
-    ///
-    /// [system-error-codes]: https://docs.microsoft.com/en-us/windows/win32/debug/system-error-codes
-    pub fn code(&self) -> u32 {
-        match *self {
-            Self::CreationFailed(code) => code,
-            Self::WaitFailed(code) => code,
-            Self::KillFailed(code) => code,
-            Self::GetExitCodeFailed(code) => code,
-            Self::GetProcessIdFailed(code) => code,
-        }
     }
 }
