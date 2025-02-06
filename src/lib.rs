@@ -100,23 +100,23 @@
 //! [windows-rs]: https://github.com/microsoft/windows-rs
 //! [create-processes-example]: https://docs.microsoft.com/en-us/windows/win32/procthread/creating-processes
 
+mod binding;
+
 use std::{
     ffi::{OsStr, OsString},
     fmt,
+    iter::once,
     mem::size_of,
     os::windows::ffi::OsStrExt,
     path::{Path, PathBuf},
+    ptr::{null, null_mut},
 };
 use thiserror::Error;
-use windows::{
-    core::{PCWSTR, PWSTR},
-    Win32::{
-        Foundation::{CloseHandle, GetLastError, STATUS_PENDING, WAIT_OBJECT_0},
-        System::Threading::{
-            CreateProcessW, GetExitCodeProcess, TerminateProcess, WaitForSingleObject, INFINITE,
-            PROCESS_CREATION_FLAGS, PROCESS_INFORMATION, STARTUPINFOW,
-        },
-    },
+
+use crate::binding::{
+    CloseHandle, CreateProcessW, GetExitCodeProcess, GetLastError, TerminateProcess,
+    WaitForSingleObject, BOOL, DWORD, INFINITE, PCWSTR, PDWORD, PROCESS_INFORMATION, PWSTR,
+    STARTUPINFOW, STATUS_PENDING, UINT, WAIT_OBJECT_0,
 };
 
 /// A process builder, providing control over how a new process should be
@@ -292,41 +292,40 @@ impl Child {
 
         startup_information.cb = size_of::<STARTUPINFOW>() as u32;
 
-        let process_creation_flags = PROCESS_CREATION_FLAGS(0);
-
-        // Convert command to a wide string with a null terminator.
-        let mut command_wide = command.encode_wide().chain(Some(0)).collect::<Vec<_>>();
+        let process_creation_flags = 0 as DWORD;
 
         let current_directory_ptr = current_directory
             .map(|path| {
-                path.as_os_str()
-                    .encode_wide()
-                    .chain(Some(0))
-                    .collect::<Vec<_>>()
+                let wide_path: Vec<u16> = path.as_os_str().encode_wide().chain(once(0)).collect();
+
+                wide_path.as_ptr()
             })
-            .map(|wide_path| wide_path.as_ptr())
             .unwrap_or(std::ptr::null_mut());
+
+        // Convert command to a wide string with a null terminator.
+        let command = command.encode_wide().chain(once(0)).collect::<Vec<_>>();
 
         let res = unsafe {
             CreateProcessW(
-                PCWSTR::null(),
-                PWSTR(command_wide.as_mut_ptr()),
-                None,
-                None,
-                inherit_handles,
-                process_creation_flags,
-                None,
-                PCWSTR(current_directory_ptr),
+                null(),
+                command.as_ptr() as PWSTR,
+                null_mut(),
+                null_mut(),
+                inherit_handles as BOOL,
+                process_creation_flags as DWORD,
+                null_mut(),
+                current_directory_ptr as PCWSTR,
                 &startup_information,
                 &mut process_information,
             )
         };
 
-        match res {
-            Ok(()) => Ok(Self {
+        if res != 0 {
+            Ok(Self {
                 process_information,
-            }),
-            Err(_) => Err(Error::CreationFailed(unsafe { GetLastError().0 })),
+            })
+        } else {
+            Err(Error::CreationFailed(unsafe { GetLastError() }))
         }
     }
 
@@ -361,12 +360,12 @@ impl Child {
     ///
     /// [terminate-process]: https://docs.microsoft.com/en-us/windows/win32/api/processthreadsapi/nf-processthreadsapi-terminateprocess
     pub fn kill(&self) -> Result<()> {
-        unsafe {
-            if TerminateProcess(self.process_information.hProcess, 0).is_err() {
-                Err(Error::KillFailed(GetLastError().0))
-            } else {
-                Ok(())
-            }
+        let res = unsafe { TerminateProcess(self.process_information.hProcess, 0 as UINT) };
+
+        if res != 0 {
+            Ok(())
+        } else {
+            Err(Error::KillFailed(unsafe { GetLastError() }))
         }
     }
 
@@ -399,25 +398,29 @@ impl Child {
     /// [wait-for-single-object]: https://docs.microsoft.com/en-us/windows/win32/api/synchapi/nf-synchapi-waitforsingleobject
     /// [close-handle]: https://docs.microsoft.com/en-us/windows/win32/api/handleapi/nf-handleapi-closehandle
     pub fn wait(&self) -> Result<ExitStatus> {
-        unsafe {
-            let mut exit_code: u32 = 0;
-            let res = WaitForSingleObject(self.process_information.hProcess, INFINITE);
+        let mut exit_code = 0;
 
-            if res == WAIT_OBJECT_0 {
-                if GetExitCodeProcess(
-                    self.process_information.hProcess,
-                    &mut exit_code as *mut u32,
-                )
-                .is_ok()
-                {
-                    close_handles(&self.process_information);
-                    Ok(ExitStatus(exit_code))
-                } else {
-                    Err(Error::GetExitCodeFailed(GetLastError().0))
+        let wait = unsafe {
+            WaitForSingleObject(self.process_information.hProcess, INFINITE) == WAIT_OBJECT_0
+        };
+
+        if wait {
+            let res = unsafe {
+                GetExitCodeProcess(self.process_information.hProcess, &mut exit_code as PDWORD)
+            };
+
+            if res != 0 {
+                unsafe {
+                    CloseHandle(self.process_information.hProcess);
+                    CloseHandle(self.process_information.hThread);
                 }
+
+                Ok(ExitStatus(exit_code))
             } else {
-                Err(Error::WaitFailed(GetLastError().0))
+                Err(Error::GetExitCodeFailed(unsafe { GetLastError() }))
             }
+        } else {
+            Err(Error::WaitFailed(unsafe { GetLastError() }))
         }
     }
 
@@ -460,20 +463,25 @@ impl Child {
     /// [get-exit-code]: https://docs.microsoft.com/en-us/windows/win32/api/processthreadsapi/nf-processthreadsapi-getexitcodeprocess
     ///
     pub fn try_wait(&self) -> Result<Option<ExitStatus>> {
-        let mut exit_code: u32 = 0;
+        let mut exit_code = 0;
 
-        unsafe {
-            match GetExitCodeProcess(
-                self.process_information.hProcess,
-                &mut exit_code as *mut u32,
-            ) {
-                Ok(()) if exit_code as i32 == STATUS_PENDING.0 => Ok(None),
-                Ok(()) => {
-                    close_handles(&self.process_information);
-                    Ok(Some(ExitStatus(exit_code)))
+        let res = unsafe {
+            GetExitCodeProcess(self.process_information.hProcess, &mut exit_code as PDWORD)
+        };
+
+        if res != 0 {
+            if exit_code == STATUS_PENDING {
+                Ok(None)
+            } else {
+                unsafe {
+                    CloseHandle(self.process_information.hProcess);
+                    CloseHandle(self.process_information.hThread);
                 }
-                Err(_) => Err(Error::GetExitCodeFailed(GetLastError().0)),
+
+                Ok(Some(ExitStatus(exit_code)))
             }
+        } else {
+            Err(Error::GetExitCodeFailed(unsafe { GetLastError() }))
         }
     }
 
@@ -495,11 +503,6 @@ impl Child {
     pub fn id(&self) -> u32 {
         self.process_information.dwProcessId
     }
-}
-
-unsafe fn close_handles(process_info: &PROCESS_INFORMATION) {
-    let _ = CloseHandle(process_info.hProcess);
-    let _ = CloseHandle(process_info.hThread);
 }
 
 /// Describes the result of a process after it has terminated.

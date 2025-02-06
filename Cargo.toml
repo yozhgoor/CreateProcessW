@@ -17,15 +17,6 @@ include = ["src/**/*.rs", "README.md", "LICENSE.Apache-2.0", "LICENSE.MIT"]
 [dependencies]
 thiserror = "1.0"
 
-[dependencies.windows]
-version = "0.54.0"
-features = [
-    "Win32_Foundation",
-    "Win32_Security",
-    "Win32_System_Threading",
-    "Win32_System_WindowsProgramming",
-]
-
 [package.metadata.docs.rs]
 default-target = "x86_64-pc-windows-msvc"
 targets = ["x86_64-pc-windows-msvc"]
