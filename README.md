@@ -6,7 +6,7 @@
 [![dependencies status][deps-badge]][deps-url]
 ![licenses][licenses-badge]
 
-[actions-badge]: https://github.com/yozhgoor/CreateProcessW/workflows/rust/badge.svg
+[actions-badge]: https://github.com/yozhgoor/CreateProcessW/actions/workflows/rust.yml/badge.svg
 [actions-url]: https://github.com/yozhgoor/CreateProcessW/actions
 [crates-version-badge]: https://img.shields.io/crates/v/CreateProcessW
 [crates-url]: https://crates.io/crates/CreateProcessW
