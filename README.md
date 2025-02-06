@@ -6,7 +6,7 @@
 [![dependencies status][deps-badge]][deps-url]
 ![licenses][licenses-badge]
 
-[actions-badge]: https://github.com/yozhgoor/CreateProcessW/workflows/main/badge.svg
+[actions-badge]: https://github.com/yozhgoor/CreateProcessW/workflows/rust/badge.svg
 [actions-url]: https://github.com/yozhgoor/CreateProcessW/actions
 [crates-version-badge]: https://img.shields.io/crates/v/CreateProcessW
 [crates-url]: https://crates.io/crates/CreateProcessW
@@ -19,8 +19,7 @@
 <!-- cargo-rdme start -->
 
 This crate provides an API similar to [`std::process`](https://doc.rust-lang.org/stable/std/process/) to create
-and handle processes on Windows using the Win32 API through the
-[windows-rs][windows-rs] crate (see [this example][create-processes-example]).
+and handle processes on Windows using the Win32 API (see [this example][create-processes-example]).
 
 Its main difference with `std::process::Command` is that it allows running
 a command string instead of having to pass the command executable and the
@@ -40,7 +39,7 @@ the command instead of the PID of `cmd.exe`. This is important because
 calling `.kill()` in the code above does not work as it kills the PID
 of `cmd.exe` instead of the actual command that has been ran.
 
-# Usage
+## Usage
 
 Add the following to your `Cargo.toml`:
 
@@ -57,7 +56,7 @@ consistent with other imported crates, use the following:
 create_process_w = { version = "0.1.0", package = "CreateProcessW" }
 ```
 
-# Create a command
+## Create a command
 
 The [`Command`](https://docs.rs/CreateProcessW/latest/CreateProcessW/struct.Command.html) struct is used to configure and spawn processes:
 
@@ -69,7 +68,7 @@ let command = Command::new("cargo.exe clippy -- -D warnings")
     .current_dir(r"C:\Users\<user>\repos\<repo_name>");
 ```
 
-## Spawning a process
+### Spawning a process
 
 The [`spawn`](https://docs.rs/CreateProcessW/latest/CreateProcessW/struct.Command.html) function spawns the process and returns a
 [`Child`](https://docs.rs/CreateProcessW/latest/CreateProcessW/struct.Child.html) that represents the spawned child process.
@@ -111,7 +110,6 @@ if status.success() {
 }
 ```
 
-[windows-rs]: https://github.com/microsoft/windows-rs
 [create-processes-example]: https://docs.microsoft.com/en-us/windows/win32/procthread/creating-processes
 
 <!-- cargo-rdme end -->
