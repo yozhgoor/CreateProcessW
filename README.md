@@ -12,8 +12,6 @@
 [crates-url]: https://crates.io/crates/CreateProcessW
 [docs-badge]: https://docs.rs/CreateProcessW/badge.svg
 [docs-url]: https://docs.rs/CreateProcessW
-[deps-badge]: https://deps.rs/crate/CreateProcessW/0.1.5/status.svg
-[deps-url]: https://deps.rs/crate/CreateProcessW
 [licenses-badge]: https://img.shields.io/crates/l/CreateProcessW
 
 <!-- cargo-rdme start -->
