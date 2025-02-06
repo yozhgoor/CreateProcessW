@@ -5,8 +5,7 @@
 #![deny(missing_docs)]
 
 //! This crate provides an API similar to [`std::process`](::std::process) to create
-//! and handle processes on Windows using the Win32 API through the
-//! [windows-rs][windows-rs] crate (see [this example][create-processes-example]).
+//! and handle processes on Windows using the Win32 API (see [this example][create-processes-example]).
 //!
 //! Its main difference with `std::process::Command` is that it allows running
 //! a command string instead of having to pass the command executable and the
@@ -97,7 +96,6 @@
 //! }
 //! ```
 //!
-//! [windows-rs]: https://github.com/microsoft/windows-rs
 //! [create-processes-example]: https://docs.microsoft.com/en-us/windows/win32/procthread/creating-processes
 
 mod binding;
