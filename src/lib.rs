@@ -100,6 +100,8 @@
 //! [windows-rs]: https://github.com/microsoft/windows-rs
 //! [create-processes-example]: https://docs.microsoft.com/en-us/windows/win32/procthread/creating-processes
 
+mod binding;
+
 use std::{
     ffi::{OsStr, OsString},
     fmt,
@@ -110,8 +112,6 @@ use std::{
     ptr::{null, null_mut},
 };
 use thiserror::Error;
-
-mod binding;
 
 use crate::binding::{
     CloseHandle, CreateProcessW, GetExitCodeProcess, GetLastError, TerminateProcess,
