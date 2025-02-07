@@ -113,8 +113,8 @@ use std::{
 
 use crate::binding::{
     CloseHandle, CreateProcessW, GetExitCodeProcess, TerminateProcess, WaitForSingleObject, BOOL,
-    DWORD, INFINITE, PCWSTR, PDWORD, PROCESS_INFORMATION, PWSTR, STARTUPINFOW, STATUS_PENDING,
-    UINT, WAIT_OBJECT_0,
+    DWORD, INFINITE, PCWSTR, PDWORD, PROCESS_INFORMATION, PWSTR, SECURITY_ATTRIBUTES, STARTUPINFOW,
+    STATUS_PENDING, UINT, WAIT_OBJECT_0,
 };
 
 /// A process builder, providing control over how a new process should be
@@ -287,6 +287,7 @@ impl Child {
     ) -> Result<Self, Error> {
         let mut startup_information = STARTUPINFOW::default();
         let mut process_information = PROCESS_INFORMATION::default();
+        let mut security_attributes = SECURITY_ATTRIBUTES::new(inherit_handles);
 
         startup_information.cb = size_of::<STARTUPINFOW>() as u32;
 
@@ -307,8 +308,8 @@ impl Child {
             CreateProcessW(
                 null(),
                 command.as_ptr() as PWSTR,
-                null_mut(),
-                null_mut(),
+                &mut security_attributes,
+                &mut security_attributes,
                 inherit_handles as BOOL,
                 process_creation_flags as DWORD,
                 null_mut(),

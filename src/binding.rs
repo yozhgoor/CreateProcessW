@@ -60,6 +60,16 @@ pub(crate) struct SECURITY_ATTRIBUTES {
     bInheritHandle: BOOL,
 }
 
+impl SECURITY_ATTRIBUTES {
+    pub(crate) fn new(inherit_handles: bool) -> Self {
+        Self {
+            nLength: size_of::<SECURITY_ATTRIBUTES>() as DWORD,
+            lpSecurityDescriptor: null_mut(),
+            bInheritHandle: inherit_handles as BOOL,
+        }
+    }
+}
+
 // https://learn.microsoft.com/en-us/windows/win32/api/processthreadsapi/ns-processthreadsapi-startupinfow
 #[repr(C)]
 pub(crate) struct STARTUPINFOW {
