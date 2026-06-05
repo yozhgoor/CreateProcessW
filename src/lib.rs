@@ -287,11 +287,22 @@ impl Child {
     ) -> Result<Self, Error> {
         let mut startup_information = STARTUPINFOW::default();
         let mut process_information = PROCESS_INFORMATION::default();
-        let mut security_attributes = SECURITY_ATTRIBUTES::new(inherit_handles);
 
         startup_information.cb = size_of::<STARTUPINFOW>() as u32;
 
         let process_creation_flags = 0 as DWORD;
+
+        // Skip allocation when `inherit_handles` is false.
+        let mut security_attributes;
+        let (lp_process_attributes, lp_thread_attributes) = if inherit_handles {
+            security_attributes = SECURITY_ATTRIBUTES::new(true);
+            (
+                &mut security_attributes as *mut SECURITY_ATTRIBUTES,
+                &mut security_attributes as *mut SECURITY_ATTRIBUTES,
+            )
+        } else {
+            (null_mut(), null_mut())
+        };
 
         let current_directory_ptr = current_directory
             .map(|path| {
@@ -308,8 +319,8 @@ impl Child {
             CreateProcessW(
                 null(),
                 command.as_ptr() as PWSTR,
-                &mut security_attributes,
-                &mut security_attributes,
+                lp_process_attributes,
+                lp_thread_attributes,
                 inherit_handles as BOOL,
                 process_creation_flags as DWORD,
                 null_mut(),
