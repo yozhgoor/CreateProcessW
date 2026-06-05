@@ -410,9 +410,9 @@ impl Child {
             .unwrap_or(null_mut());
 
         let process_creation_flags = if lp_env_ptr.is_null() {
-            0 as DWORD
+            0
         } else {
-            CREATE_UNICODE_ENVIRONMENT as DWORD
+            CREATE_UNICODE_ENVIRONMENT
         };
 
         // Skip allocation when `inherit_handles` is false.
@@ -690,7 +690,15 @@ fn build_env_block(
         }
     }
 
-    map.sort_by(|(a, _), (b, _)| ascii_lower_wide(a).cmp(ascii_lower_wide(b)));
+    let mut pairs: Vec<_> = map
+        .drain(..)
+        .map(|(key, val)| {
+            let lowered: Vec<u16> = ascii_lower_wide(&key).collect();
+            (lowered, key, val)
+        })
+        .collect();
+    pairs.sort_by(|(a, _, _), (b, _, _)| a.cmp(b));
+    map = pairs.into_iter().map(|(_, key, val)| (key, val)).collect();
 
     let mut block: Vec<u16> = Vec::new();
     for (key, val) in &map {
