@@ -129,7 +129,7 @@ pub struct Command {
 impl Command {
     /// Create a new [`Command`], with the following default configuration:
     ///
-    /// * Inherit handles of the calling process.
+    /// * Do not Inherit handles of the calling process.
     /// * Inherit the current drive and directory of the calling process.
     ///
     /// Builder methods are provided to change these defaults and otherwise
@@ -157,12 +157,16 @@ impl Command {
         }
     }
 
-    /// Enable/disable handles inherance.
+    /// Enable/disable handle inheritance.
     ///
-    /// If this parameter is `true`, each inheritable handle in the calling
-    /// process is inherited by the new process. If the parameter is `false`,
-    /// the handles are not inherited. Note that inherited handles have the
-    /// same value and access rights as the original handles.
+    /// When `true`, two things happen:
+    /// 1. Each inheritable handle in the calling process is inherited by the
+    ///    new process (maps to `bInheritHandles`).
+    /// 2. The process and thread handles returned in [`Child`] are themselves
+    ///    marked as inheritable, so *future* child processes can inherit them
+    ///    too (maps to `bInheritHandle` on `lpProcessAttributes` / `lpThreadAttributes`).
+    ///
+    /// When `false`, neither happens.
     ///
     /// Equivalent to the `bInheritHandles` parameter of the
     /// [`CreateProcessW`][create-process-w-parameters] function.
