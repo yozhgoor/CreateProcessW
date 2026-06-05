@@ -8,6 +8,9 @@ pub(crate) const INFINITE: u32 = 0xFFFFFFFF;
 pub(crate) const WAIT_OBJECT_0: u32 = 0x00000000;
 // https://learn.microsoft.com/en-us/windows/win32/api/processthreadsapi/nf-processthreadsapi-getexitcodeprocess#remarks
 pub(crate) const STATUS_PENDING: u32 = 0x00000103;
+// https://learn.microsoft.com/en-us/windows/win32/api/handleapi/nf-handleapi-gethandleinformation#parameters
+#[cfg(test)]
+pub(crate) const HANDLE_FLAG_INHERIT: u32 = 0x00000001;
 
 // https://learn.microsoft.com/en-us/windows/win32/winprog/windows-data-types#BOOL
 pub(crate) type BOOL = i32;
@@ -140,4 +143,7 @@ extern "system" {
     pub(crate) fn TerminateProcess(hProcess: HANDLE, uExitCode: UINT) -> BOOL;
     // https://learn.microsoft.com/en-us/windows/win32/api/synchapi/nf-synchapi-waitforsingleobject
     pub(crate) fn WaitForSingleObject(hHandle: HANDLE, dwMilliseconds: DWORD) -> DWORD;
+    // https://learn.microsoft.com/en-us/windows/win32/api/handleapi/nf-handleapi-gethandleinformation
+    #[cfg(test)]
+    pub(crate) fn GetHandleInformation(hObject: HANDLE, lpdwFlags: PDWORD) -> BOOL;
 }
