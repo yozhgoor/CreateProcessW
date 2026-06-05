@@ -101,7 +101,8 @@
 mod binding;
 
 use std::{
-    ffi::{OsStr, OsString},
+    env,
+    ffi::{c_void, OsStr, OsString},
     fmt,
     io::Error,
     iter::once,
@@ -113,8 +114,8 @@ use std::{
 
 use crate::binding::{
     CloseHandle, CreateProcessW, GetExitCodeProcess, TerminateProcess, WaitForSingleObject, BOOL,
-    DWORD, INFINITE, PCWSTR, PDWORD, PROCESS_INFORMATION, PWSTR, SECURITY_ATTRIBUTES, STARTUPINFOW,
-    STATUS_PENDING, UINT, WAIT_OBJECT_0,
+    CREATE_UNICODE_ENVIRONMENT, DWORD, INFINITE, PCWSTR, PDWORD, PROCESS_INFORMATION, PWSTR,
+    SECURITY_ATTRIBUTES, STARTUPINFOW, STATUS_PENDING, UINT, WAIT_OBJECT_0,
 };
 
 /// A process builder, providing control over how a new process should be
@@ -124,6 +125,8 @@ pub struct Command {
     command: OsString,
     inherit_handles: bool,
     current_directory: Option<PathBuf>,
+    env_clear: bool,
+    env_vars: Vec<(OsString, Option<OsString>)>,
 }
 
 impl Command {
@@ -131,6 +134,7 @@ impl Command {
     ///
     /// * Do not Inherit handles of the calling process.
     /// * Inherit the current drive and directory of the calling process.
+    /// * Inherit the environment of the calling process.
     ///
     /// Builder methods are provided to change these defaults and otherwise
     /// configure the process.
@@ -154,6 +158,8 @@ impl Command {
             command: command.into(),
             inherit_handles: false,
             current_directory: None,
+            env_clear: false,
+            env_vars: Vec::new(),
         }
     }
 
@@ -202,6 +208,105 @@ impl Command {
         self
     }
 
+    /// Inserts or updates an environment variable mapping.
+    ///
+    /// When inheriting the parent's environment (the default), the last call
+    /// to `env` for a given key wins. Earlier calls with the same key are
+    /// overridden.
+    ///
+    /// A key should not contain ASCII `=` or a NUL byte.
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// use CreateProcessW::Command;
+    ///
+    /// Command::new("cmd.exe /c echo %MY_VAR%")
+    ///     .env("MY_VAR", "hello")
+    ///     .spawn()
+    ///     .expect("failed to execute process");
+    /// ```
+    pub fn env<K, V>(&mut self, key: K, val: V) -> &mut Self
+    where
+        K: AsRef<OsStr>,
+        V: AsRef<OsStr>,
+    {
+        self.env_vars.push((
+            key.as_ref().to_os_string(),
+            Some(val.as_ref().to_os_string()),
+        ));
+        self
+    }
+
+    /// Adds or updates multiple environment variable mappings.
+    ///
+    /// Works like repeated calls to [`env`](Command::env). The last
+    /// occurrence of a duplicate key wins.
+    pub fn envs<I, K, V>(&mut self, vars: I) -> &mut Self
+    where
+        I: IntoIterator<Item = (K, V)>,
+        K: AsRef<OsStr>,
+        V: AsRef<OsStr>,
+    {
+        for (key, val) in vars {
+            self.env(key, val);
+        }
+        self
+    }
+
+    /// Removes an environment variable from the inherited environment.
+    ///
+    /// If [`env_clear`](Command::env_clear) is called *before* this method,
+    /// removal is a no-op at that point (the child already starts with an
+    ///  empty environment). If [`env_clear`](Command::env_clear) is called
+    /// *after* this method, the removal is erased along with all other
+    /// environment configuration.
+    ///
+    /// Note: The last operation on a key wins. Calling `env_remove` after
+    /// [`env`](Command::env) for the same key removes it and calling
+    /// [`env`](Command::env) after `env_remove` sets it.
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// use CreateProcessW::Command;
+    ///
+    /// Command::new("cmd.exe /c set")
+    ///     .env_remove("PATH")
+    ///     .spawn()
+    ///     .expect("failed to execute process");
+    /// ```
+    pub fn env_remove<K>(&mut self, key: K) -> &mut Self
+    where
+        K: AsRef<OsStr>,
+    {
+        self.env_vars.push((key.as_ref().to_os_string(), None));
+        self
+    }
+
+    /// Clears the entire environment map for the child process.
+    ///
+    /// The child will **not** inherit any environment variables from the
+    /// parent process. Only variables added with [`env`](Command::env) or
+    /// [`envs`](Command::envs) will be present.
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// use CreateProcessW::Command;
+    ///
+    /// Command::new("cmd.exe /c set")
+    ///     .env_clear()
+    ///     .env("MY_VAR", "hello")
+    ///     .spawn()
+    ///     .expect("failed to execute process");
+    /// ```
+    pub fn env_clear(&mut self) -> &mut Self {
+        self.env_clear = true;
+        self.env_vars.clear();
+        self
+    }
+
     /// Executes the command as a child process, returning a handle to it.
     ///
     /// # Examples
@@ -218,6 +323,8 @@ impl Command {
             &self.command,
             self.inherit_handles,
             self.current_directory.as_deref(),
+            self.env_clear,
+            std::mem::take(&mut self.env_vars),
         )
     }
 
@@ -288,13 +395,25 @@ impl Child {
         command: &OsStr,
         inherit_handles: bool,
         current_directory: Option<&Path>,
+        env_clear: bool,
+        env_vars: Vec<(OsString, Option<OsString>)>,
     ) -> Result<Self, Error> {
         let mut startup_information = STARTUPINFOW::default();
         let mut process_information = PROCESS_INFORMATION::default();
 
         startup_information.cb = size_of::<STARTUPINFOW>() as u32;
 
-        let process_creation_flags = 0 as DWORD;
+        let env_block = build_env_block(env_clear, env_vars);
+        let lp_env_ptr = env_block
+            .as_ref()
+            .map(|b| b.as_ptr() as *mut c_void)
+            .unwrap_or(null_mut());
+
+        let process_creation_flags = if lp_env_ptr.is_null() {
+            0 as DWORD
+        } else {
+            CREATE_UNICODE_ENVIRONMENT as DWORD
+        };
 
         // Skip allocation when `inherit_handles` is false.
         let mut security_attributes;
@@ -327,7 +446,7 @@ impl Child {
                 lp_thread_attributes,
                 inherit_handles as BOOL,
                 process_creation_flags as DWORD,
-                null_mut(),
+                lp_env_ptr,
                 current_directory_ptr as PCWSTR,
                 &startup_information,
                 &mut process_information,
@@ -517,6 +636,77 @@ impl Child {
     pub fn id(&self) -> u32 {
         self.process_information.dwProcessId
     }
+}
+
+/// Builds a Unicode environment block.
+///
+/// Returns `None` if the child should inherit the parent's environment
+/// (i.e. `lpEnvironment` should be `NULL`).
+///
+/// Otherwise returns a `Vec<u16>` containing the double-null-terminated
+/// block in the format:
+/// ```text
+/// K\0E\0Y\0=\0V\0A\0L\0\0\0
+/// K\0E\0Y\0=\0V\0A\0L\0\0\0
+/// \0\0
+/// ```
+fn build_env_block(
+    env_clear: bool,
+    env_vars: Vec<(OsString, Option<OsString>)>,
+) -> Option<Vec<u16>> {
+    fn ascii_lower_wide(s: &OsStr) -> impl Iterator<Item = u16> + '_ {
+        s.encode_wide().map(|c| {
+            if (b'A' as u16..=b'Z' as u16).contains(&c) {
+                c + 32
+            } else {
+                c
+            }
+        })
+    }
+
+    fn eq_ignore_ascii_case(a: &OsStr, b: &OsStr) -> bool {
+        ascii_lower_wide(a).eq(ascii_lower_wide(b))
+    }
+
+    if !env_clear && env_vars.is_empty() {
+        return None;
+    }
+
+    let mut map: Vec<(OsString, OsString)> = if env_clear {
+        Vec::new()
+    } else {
+        env::vars_os().collect()
+    };
+
+    let mut seen: Vec<OsString> = Vec::new();
+    for (key, val) in env_vars.into_iter().rev() {
+        if seen.iter().any(|k| eq_ignore_ascii_case(k, &key)) {
+            continue;
+        }
+        seen.push(key.clone());
+        map.retain(|(k, _)| !eq_ignore_ascii_case(k, &key));
+        if let Some(val) = val {
+            map.push((key, val));
+        }
+    }
+
+    map.sort_by(|(a, _), (b, _)| ascii_lower_wide(a).cmp(ascii_lower_wide(b)));
+
+    let mut block: Vec<u16> = Vec::new();
+    for (key, val) in &map {
+        block.extend(key.encode_wide());
+        block.push(b'=' as u16);
+        block.extend(val.encode_wide());
+        block.push(0);
+    }
+
+    if map.is_empty() {
+        block.extend(&[0, 0]);
+    } else {
+        block.push(0);
+    }
+
+    Some(block)
 }
 
 /// Describes the result of a process after it has terminated.

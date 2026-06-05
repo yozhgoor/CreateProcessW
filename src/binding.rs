@@ -8,6 +8,8 @@ pub(crate) const INFINITE: u32 = 0xFFFFFFFF;
 pub(crate) const WAIT_OBJECT_0: u32 = 0x00000000;
 // https://learn.microsoft.com/en-us/windows/win32/api/processthreadsapi/nf-processthreadsapi-getexitcodeprocess#remarks
 pub(crate) const STATUS_PENDING: u32 = 0x00000103;
+// https://learn.microsoft.com/en-us/windows/win32/procthread/process-creation-flags
+pub(crate) const CREATE_UNICODE_ENVIRONMENT: DWORD = 0x00000400;
 // https://learn.microsoft.com/en-us/windows/win32/api/handleapi/nf-handleapi-gethandleinformation#parameters
 #[cfg(test)]
 pub(crate) const HANDLE_FLAG_INHERIT: u32 = 0x00000001;
